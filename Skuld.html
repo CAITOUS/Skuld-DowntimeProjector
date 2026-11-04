@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skuld — Downtime Projector</title>
+<meta name="description" content="Put a dollar figure on downtime and cyber-incident risk to show the value of IT preparedness planning.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f3f2ee;
+    --surface-1: #fcfcfb;
+    --surface-2: #f0efeb;
+    --border: #dddcd6;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #7a7973;
+    --accent: #2a78d6;
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --series-3: #1baf7a;
+    --grid: #e6e5e0;
+    --focus: #2a78d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #111110;
+      --surface-1: #1a1a19;
+      --surface-2: #232321;
+      --border: #34332f;
+      --text-primary: #f0efec;
+      --text-secondary: #c3c2b7;
+      --text-muted: #8f8e86;
+      --accent: #3987e5;
+      --series-1: #3987e5;
+      --series-2: #d95926;
+      --series-3: #199e70;
+      --grid: #2b2b28;
+      --focus: #3987e5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text-primary);
+    font: 15px/1.45 "IBM Plex Sans", system-ui, sans-serif;
+  }
+  .num { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  header { padding: 28px 32px 8px; max-width: 1280px; margin: 0 auto; }
+  header .eyebrow { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+  header h1 { margin: 4px 0 4px; font-size: 26px; font-weight: 700; letter-spacing: -.01em; }
+  header p { margin: 0; color: var(--text-secondary); max-width: 720px; }
+  main {
+    max-width: 1280px; margin: 0 auto; padding: 20px 32px 48px;
+    display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start;
+  }
+  @media (max-width: 960px) { main { grid-template-columns: 1fr; padding: 16px; } header { padding: 20px 16px 4px; } }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; }
+  .inputs { padding: 6px 20px 20px; position: sticky; top: 16px; }
+  @media (max-width: 960px) { .inputs { position: static; } }
+  fieldset { border: 0; padding: 14px 0 4px; margin: 0; border-bottom: 1px solid var(--border); }
+  fieldset:last-of-type { border-bottom: 0; }
+  legend { font-weight: 600; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-secondary); padding: 0; margin-bottom: 8px; }
+  .row { margin-bottom: 12px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; }
+  .hint { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+  .field { position: relative; }
+  .field .pre, .field .suf { position: absolute; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 14px; pointer-events: none; }
+  .field .pre { left: 10px; } .field .suf { right: 10px; }
+  input[type=number] {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--surface-2); color: var(--text-primary); font: 500 15px "IBM Plex Mono", monospace;
+  }
+  .field.has-pre input { padding-left: 24px; }
+  .field.has-suf input { padding-right: 30px; }
+  input:focus-visible, button:focus-visible, select:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+  .seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 2px; margin-bottom: 8px; }
+  .seg button {
+    border: 0; background: transparent; color: var(--text-secondary); font: 500 13px "IBM Plex Sans", sans-serif;
+    padding: 5px 10px; border-radius: 6px; cursor: pointer;
+  }
+  .seg button[aria-pressed=true] { background: var(--surface-1); color: var(--text-primary); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+  .hidden { display: none !important; }
+  .results { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+  .hero { padding: 22px 24px; display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; }
+  @media (max-width: 700px) { .hero { grid-template-columns: 1fr; } }
+  .duration { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .duration input[type=number] { width: 90px; }
+  .duration input[type=range] { flex: 1; min-width: 160px; accent-color: var(--accent); }
+  .hero .big { font-size: 44px; font-weight: 600; letter-spacing: -.02em; line-height: 1.05; }
+  .hero .sub { color: var(--text-secondary); margin-top: 6px; }
+  .rates { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-content: start; }
+  .tile { background: var(--surface-2); border-radius: 10px; padding: 12px 14px; }
+  .tile .k { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+  .tile .v { font-size: 20px; font-weight: 600; margin-top: 2px; }
+  .breakdown { padding: 18px 24px 22px; }
+  .breakdown h2, .chartcard h2, .tablecard h2 { font-size: 15px; margin: 0 0 12px; font-weight: 600; }
+  .bar { display: flex; height: 14px; border-radius: 4px; overflow: hidden; gap: 2px; background: var(--surface-1); margin-bottom: 14px; }
+  .bar span { display: block; height: 100%; min-width: 0; }
+  .comp { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 700px) { .comp { grid-template-columns: 1fr; } }
+  .comp > div { border-left: 4px solid; padding: 2px 0 2px 10px; }
+  .comp .name { font-size: 13px; color: var(--text-secondary); }
+  .comp .val { font-size: 18px; font-weight: 600; }
+  .comp .meta { font-size: 12px; color: var(--text-muted); }
+  .chartcard { padding: 18px 24px 16px; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  #chartWrap { position: relative; }
+  #chart { width: 100%; height: 300px; display: block; }
+  #chart text { font: 12px "IBM Plex Mono", monospace; fill: var(--text-muted); }
+  .tip {
+    position: absolute; pointer-events: none; background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 10px; font-size: 13px; box-shadow: 0 4px 16px rgba(0,0,0,.14); min-width: 190px;
+    color: var(--text-primary);
+  }
+  .tip .t { font-weight: 600; margin-bottom: 4px; }
+  .tip .r { display: flex; justify-content: space-between; gap: 14px; color: var(--text-secondary); }
+  .tip .r b { color: var(--text-primary); font-weight: 500; }
+  .tip i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+  .tablecard { padding: 18px 24px 12px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; }
+  td.total { font-weight: 600; }
+  tr.sel td { background: var(--surface-2); }
+  .actions { display: flex; gap: 10px; align-items: center; padding: 0 20px 18px; }
+  .btn {
+    border: 1px solid var(--border); background: var(--surface-2); color: var(--text-primary); border-radius: 8px;
+    padding: 8px 12px; font: 500 13px "IBM Plex Sans", sans-serif; cursor: pointer;
+  }
+  .btn:hover { border-color: var(--text-muted); }
+  .status { font-size: 12px; color: var(--text-muted); }
+  .assume { font-size: 12px; color: var(--text-muted); padding: 0 4px; }
+  .leftcol { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .inputs { position: static; }
+  .modebar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+  .modebar .lbl { font-weight: 600; font-size: 14px; }
+  .modebar .seg { margin: 0; }
+  .modebar .seg button { padding: 7px 14px; font-size: 14px; }
+  .incident-card { border-color: var(--series-2); }
+  .incident-card legend { color: var(--series-2); }
+  select {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--surface-2); color: var(--text-primary); font: 500 14px "IBM Plex Sans", sans-serif;
+  }
+  .dtype { display: grid; grid-template-columns: 1fr 120px; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .dtype span { font-size: 13px; color: var(--text-secondary); }
+  .dtype .tag { font-size: 11px; color: var(--text-muted); display: block; }
+  .helper { background: var(--surface-2); border-radius: 8px; padding: 10px; margin: 6px 0 12px; }
+  .helper .row2 { gap: 8px; }
+  .helper .out { font-size: 13px; color: var(--text-secondary); margin: 2px 0 8px; }
+  .helper input[type=number] { background: var(--surface-1); }
+  details { margin: 4px 0 10px; }
+  summary { cursor: pointer; font-size: 13px; color: var(--accent); font-weight: 500; margin-bottom: 8px; }
+  .incpanel { padding: 18px 24px 20px; }
+  .incpanel h2 { font-size: 15px; margin: 0 0 4px; font-weight: 600; }
+  .incpanel .lede { color: var(--text-secondary); font-size: 13px; margin: 0 0 14px; }
+  .items { display: flex; flex-direction: column; gap: 8px; }
+  .item { display: grid; grid-template-columns: 220px 1fr 120px; gap: 12px; align-items: center; font-size: 14px; }
+  @media (max-width: 700px) { .item { grid-template-columns: 1fr 100px; } .item .track { display: none; } }
+  .item .nm { color: var(--text-secondary); }
+  .item .nm small { display: block; color: var(--text-muted); font-size: 11.5px; }
+  .item .track { height: 10px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+  .item .track span { display: block; height: 100%; background: var(--series-2); border-radius: 0 4px 4px 0; }
+  .item .amt { text-align: right; font-weight: 600; }
+  .item.sum { border-top: 1px solid var(--border); padding-top: 8px; margin-top: 2px; }
+  .item.sum .nm { color: var(--text-primary); font-weight: 600; }
+  .item.dim .amt, .item.dim .nm { color: var(--text-muted); font-weight: 400; }
+  .rgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
+  @media (max-width: 800px) { .rgrid { grid-template-columns: 1fr 1fr; } }
+  .note { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+  .note b { color: var(--text-secondary); }
+  .heroSplit { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; font-size: 13px; color: var(--text-secondary); }
+  .heroSplit i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; }
+  .assume b { color: var(--text-secondary); font-weight: 600; }
+  /* --- app chrome (tabs, help, footer, updates) --- */
+  .toprow { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+  .toprow > div { max-width: 780px; }
+  header h1 span { font-weight: 500; color: var(--text-secondary); }
+  .tabs { display: flex; gap: 4px; border: 1px solid var(--border); background: var(--surface-1); border-radius: 8px; padding: 3px; margin-top: 6px; }
+  .tabs a { color: var(--text-secondary); text-decoration: none; font-size: 13.5px; font-weight: 500; padding: 6px 12px; border-radius: 6px; }
+  .tabs a[aria-current="page"] { background: var(--accent); color: #fff; }
+  .site-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; max-width: 560px; }
+  .site-row label { margin: 0; white-space: nowrap; font-weight: 600; color: var(--text-primary); font-size: 14px; }
+  .site-row input { flex: 1; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-1); color: var(--text-primary); font: 15px "IBM Plex Sans", sans-serif; }
+  .bang { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; margin-left: 5px; border-radius: 50%;
+    border: 1px solid var(--accent); background: transparent; color: var(--accent); font: 700 11px/1 "IBM Plex Sans", sans-serif; vertical-align: middle; cursor: pointer; text-transform: none; letter-spacing: 0; }
+  .bang:hover, .bang[aria-expanded="true"] { background: var(--accent); color: #fff; }
+  .bang-demo { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--accent); color: var(--accent); font: 700 10px/1 "IBM Plex Sans", sans-serif; }
+  .pop { position: fixed; z-index: 50; max-width: 340px; background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--accent); border-radius: 10px;
+    padding: 12px 14px; box-shadow: 0 10px 30px rgba(0,0,0,.18); font-size: 13.5px; line-height: 1.5; text-transform: none; letter-spacing: 0; font-weight: 400; }
+  .pop[hidden] { display: none; }
+  .pop h3 { margin: 0 0 6px; font-size: 14px; font-weight: 600; }
+  .pop p { margin: 0 0 6px; } .pop p:last-child { margin: 0; }
+  .pop ul { margin: 4px 0 6px; padding-left: 18px; }
+  .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--text-primary); color: var(--bg); padding: 8px 14px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+  .updbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 14px; border: 1px solid var(--accent); border-radius: 10px; font-size: 14px; max-width: 1216px; margin: 14px auto 0; background: var(--surface-1); }
+  .updbar[hidden] { display: none; }
+  .updbar .sp { flex: 1; }
+  .updbar a.btnlink { background: var(--accent); color: #fff; text-decoration: none; font: 500 13px "IBM Plex Sans", sans-serif; padding: 7px 12px; border-radius: 7px; }
+  .appfoot { display: grid; gap: 6px; border-top: 1px solid var(--border); padding: 14px 32px 28px; font-size: 12.5px; color: var(--text-muted); max-width: 1280px; margin: 0 auto; }
+  .appfoot .row { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+  .appfoot .sp { flex: 1; }
+  .appfoot a, .about a, .doc a { color: var(--accent); }
+  .helpview { display: block; max-width: 1000px; }
+  .helpview[hidden], #view-calc[hidden] { display: none; }
+  .helpview .card { margin-bottom: 20px; }
+  .doc { padding: 22px 26px; line-height: 1.55; }
+  .doc h2 { margin: 0 0 8px; font-size: 20px; }
+  .doc h3 { margin: 22px 0 6px; font-size: 16px; }
+  .doc ul, .doc ol { margin: 0; padding-left: 20px; }
+  .doc li { margin: 4px 0; }
+  .doc .lede { color: var(--text-secondary); margin: 0 0 6px; }
+  .dochead { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .eg { display: inline-block; font: 12.5px "IBM Plex Mono", monospace; color: var(--text-secondary); background: var(--surface-2); padding: 1px 6px; border-radius: 4px; margin-left: 4px; }
+  .tablewrap { overflow-x: auto; }
+  .mathtbl { margin-top: 8px; font-size: 13.5px; }
+  .mathtbl th, .mathtbl td { text-align: left; white-space: normal; vertical-align: top; }
+  .mathtbl td:last-child { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; }
+  .srctbl td:last-child { font-family: inherit; font-size: 13px; }
+  .mathtbl tr.sum td { font-weight: 600; }
+  .flag { display: inline-block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--series-2); border: 1px solid var(--series-2); border-radius: 4px; padding: 0 5px; }
+  .about #aboutBody { display: grid; gap: 10px; font-size: 14px; }
+  .about p { margin: 0; }
+  .about .notice { font-size: 12.5px; color: var(--text-muted); }
+  @media print { .tabs, .bang, .actions, .updbar, .site-row input { display: none !important; } }
+</style>
+</head>
+<body>
+<div class="updbar" id="updBar" hidden></div>
+<header>
+  <div class="toprow">
+    <div>
+      <h1>Skuld <span>Downtime Projector</span></h1>
+      <p>Put a dollar figure on the risk that IT preparedness planning reduces: idle payroll, lost revenue and cost of goods from an hour to several weeks of downtime — plus, for cyber incidents, breach penalties, recovery costs and ransom exposure. Click any <span class="bang-demo">!</span> for a plain-English explanation.</p>
+    </div>
+    <nav class="tabs" aria-label="Views">
+      <a href="#calc" data-go="calc" id="tab-calc">Calculator</a>
+      <a href="#help" data-go="help" id="tab-help">How the math works &amp; sources</a>
+    </nav>
+  </div>
+  <div class="calc-only">
+    <div class="site-row"><label for="site">Client / location</label><input id="site" type="text" placeholder="e.g. Acme Dental, main office"></div>
+    <div class="modebar">
+      <span class="lbl">Is this an incident / ransom event? <button type="button" class="bang" data-help="mode" aria-label="Help: event type">!</button></span>
+      <div class="seg" role="group" aria-label="Event type" data-key="eventMode">
+        <button type="button" data-val="outage">No — outage only</button>
+        <button type="button" data-val="incident">Yes — cyber incident / ransomware</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="view-calc">
+  <div class="leftcol">
+  <!-- INPUTS -->
+  <section class="card inputs" aria-label="Inputs">
+    <fieldset>
+      <legend>Operating schedule <button type="button" class="bang" data-help="schedule" aria-label="Help: operating schedule">!</button></legend>
+      <div class="row2">
+        <div class="row">
+          <label for="hoursPerDay">Hours per day</label>
+          <div class="field has-suf"><input type="number" id="hoursPerDay" min="1" max="24" step="0.5" value="8"><span class="suf">h</span></div>
+        </div>
+        <div class="row">
+          <label for="daysPerYear">Days per year</label>
+          <div class="field has-suf"><input type="number" id="daysPerYear" min="1" max="366" step="1" value="260"><span class="suf">d</span></div>
+        </div>
+      </div>
+      <div class="hint" style="margin:-6px 0 10px">A "day" of downtime = one operating day. Use 24 × 365 for round-the-clock operations.</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Payroll &amp; headcount <button type="button" class="bang" data-help="payroll" aria-label="Help: payroll and headcount">!</button></legend>
+      <div class="seg" role="group" aria-label="Payroll input type" data-key="payMode">
+        <button type="button" data-val="total">Total annual payroll</button>
+        <button type="button" data-val="rate">Avg hourly rate</button>
+      </div>
+      <div class="row" data-show="payMode:total">
+        <label for="payTotal">Total annual payroll</label>
+        <div class="field has-pre"><span class="pre">$</span><input type="number" id="payTotal" min="0" step="1000" value="2500000"></div>
+      </div>
+      <div class="row" data-show="payMode:rate">
+        <label for="payRate">Average hourly rate per employee</label>
+        <div class="field has-pre"><span class="pre">$</span><input type="number" id="payRate" min="0" step="0.5" value="32"></div>
+      </div>
+      <div class="row2">
+        <div class="row">
+          <label for="headcount">Headcount</label>
+          <div class="field"><input type="number" id="headcount" min="0" step="1" value="50"></div>
+        </div>
+        <div class="row">
+          <label for="burden">Benefits / tax load</label>
+          <div class="field has-suf"><input type="number" id="burden" min="0" max="200" step="1" value="0"><span class="suf">%</span></div>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="row">
+          <label for="affectedPct">Staff affected</label>
+          <div class="field has-suf"><input type="number" id="affectedPct" min="0" max="100" step="5" value="100"><span class="suf">%</span></div>
+        </div>
+        <div class="row">
+          <label for="prodLossPct">Productivity lost</label>
+          <div class="field has-suf"><input type="number" id="prodLossPct" min="0" max="100" step="5" value="100"><span class="suf">%</span></div>
+        </div>
+      </div>
+      <div class="hint" style="margin:-6px 0 10px">Leave load at 0% if your payroll figure already includes benefits and employer taxes.</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Revenue <button type="button" class="bang" data-help="revenue" aria-label="Help: revenue">!</button></legend>
+      <div class="seg" role="group" aria-label="Revenue period" data-key="revMode">
+        <button type="button" data-val="annual">Yearly</button>
+        <button type="button" data-val="monthly">Monthly</button>
+      </div>
+      <div class="row2">
+        <div class="row">
+          <label for="revenue" id="revLabel">Yearly revenue</label>
+          <div class="field has-pre"><span class="pre">$</span><input type="number" id="revenue" min="0" step="1000" value="12000000"></div>
+        </div>
+        <div class="row">
+          <label for="revImpactPct">Revenue lost</label>
+          <div class="field has-suf"><input type="number" id="revImpactPct" min="0" max="100" step="5" value="50"><span class="suf">%</span></div>
+        </div>
+      </div>
+      <div class="hint" style="margin:-6px 0 10px">Share of revenue that is <em>not</em> recovered later (delayed orders that still close don't count).</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Cost of goods sold <button type="button" class="bang" data-help="cogs" aria-label="Help: cost of goods sold">!</button></legend>
+      <div class="seg" role="group" aria-label="COGS input type" data-key="cogsMode">
+        <button type="button" data-val="annual">Annual total</button>
+        <button type="button" data-val="perhead">Per head / yr</button>
+      </div>
+      <div class="row">
+        <label for="cogs" id="cogsLabel">Annual COGS</label>
+        <div class="field has-pre"><span class="pre">$</span><input type="number" id="cogs" min="0" step="1000" value="5000000"></div>
+      </div>
+      <label>During downtime, COGS is…</label>
+      <div class="seg" role="group" aria-label="COGS treatment" data-key="cogsTreat">
+        <button type="button" data-val="net">Avoided (net it out)</button>
+        <button type="button" data-val="incurred">Still incurred</button>
+      </div>
+      <div class="hint" id="cogsHint"></div>
+    </fieldset>
+  </section>
+
+  <!-- INCIDENT INPUTS -->
+  <section class="card inputs incident-card" aria-label="Incident inputs" data-show="eventMode:incident">
+    <fieldset>
+      <legend>Organization profile <button type="button" class="bang" data-help="industry" aria-label="Help: organization profile">!</button></legend>
+      <div class="row">
+        <label for="industry">Industry</label>
+        <select id="industry"></select>
+      </div>
+      <div class="hint" style="margin:-6px 0 10px">Revenue and headcount come from the inputs above and set the ransom size band.</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Data exposed <button type="button" class="bang" data-help="data" aria-label="Help: data exposed">!</button></legend>
+      <div class="helper">
+        <label style="margin-bottom:6px">Estimate records from data size</label>
+        <div class="row2">
+          <div><label for="dataGB">Data size</label><div class="field has-suf"><input type="number" id="dataGB" min="0" step="0.1"><span class="suf">GB</span></div></div>
+          <div><label for="kbPerRecord">Avg size / record</label><div class="field has-suf"><input type="number" id="kbPerRecord" min="0.01" step="0.5"><span class="suf">KB</span></div></div>
+        </div>
+        <div class="out" id="gbOut"></div>
+        <div class="row2">
+          <select id="applyType" aria-label="Apply estimate to data type"></select>
+          <button class="btn" type="button" id="applyBtn">Apply count</button>
+        </div>
+      </div>
+      <div id="dtypeRows"></div>
+      <details>
+        <summary>Per-record costs &amp; uptake</summary>
+        <div class="row2">
+          <div class="row"><label for="notifyCost">Notification / record</label><div class="field has-pre"><span class="pre">$</span><input type="number" id="notifyCost" min="0" step="0.1"></div></div>
+          <div class="row"><label for="monitorCost">Monitoring / person / yr</label><div class="field has-pre"><span class="pre">$</span><input type="number" id="monitorCost" min="0" step="1"></div></div>
+        </div>
+        <div class="row2">
+          <div class="row"><label for="monitorYears">Monitoring years</label><div class="field"><input type="number" id="monitorYears" min="0" step="1"></div></div>
+          <div class="row"><label for="monitorUptake">Enrollment rate</label><div class="field has-suf"><input type="number" id="monitorUptake" min="0" max="100" step="5"><span class="suf">%</span></div></div>
+        </div>
+        <div class="row"><label for="pciPerCard">PCI fines &amp; fees / card</label><div class="field has-pre"><span class="pre">$</span><input type="number" id="pciPerCard" min="0" step="5"></div></div>
+      </details>
+    </fieldset>
+
+    <fieldset>
+      <legend>Penalties &amp; regulatory <button type="button" class="bang" data-help="penalties" aria-label="Help: penalties">!</button></legend>
+      <div class="row2">
+        <div class="row">
+          <label for="hipaaTier">HIPAA tier (PHI)</label>
+          <select id="hipaaTier">
+            <option value="0">Not applicable</option>
+            <option value="1">Tier 1 — didn't know</option>
+            <option value="2">Tier 2 — reasonable cause</option>
+            <option value="3">Tier 3 — willful neglect, corrected</option>
+            <option value="4">Tier 4 — willful neglect, not corrected</option>
+          </select>
+        </div>
+        <div class="row"><label for="hipaaProvisions">Provisions violated</label><div class="field"><input type="number" id="hipaaProvisions" min="1" step="1"></div></div>
+      </div>
+      <div class="row2">
+        <div class="row"><label for="caPct">California residents</label><div class="field has-suf"><input type="number" id="caPct" min="0" max="100" step="1"><span class="suf">%</span></div></div>
+        <div class="row"><label for="ccpaPer">CCPA $ / consumer</label><div class="field has-pre"><span class="pre">$</span><input type="number" id="ccpaPer" min="0" step="1"></div></div>
+      </div>
+      <div class="row2">
+        <div class="row"><label for="gdprPct">GDPR fine (% revenue)</label><div class="field has-suf"><input type="number" id="gdprPct" min="0" max="4" step="0.1"><span class="suf">%</span></div></div>
+        <div class="row"><label for="otherFines">Other fines / settlements</label><div class="field has-pre"><span class="pre">$</span><input type="number" id="otherFines" min="0" step="1000"></div></div>
+      </div>
+      <div class="hint" style="margin:-6px 0 10px">Set GDPR above 0% only if EU/UK residents' data is involved (max 4% of global revenue or €20M).</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Recovery &amp; ransom <button type="button" class="bang" data-help="recovery" aria-label="Help: recovery and ransom">!</button></legend>
+      <div class="row">
+        <label for="recoveryCost">Recovery cost, excl. ransom (IR, forensics, legal, rebuild)</label>
+        <div class="field has-pre"><span class="pre">$</span><input type="number" id="recoveryCost" min="0" step="5000"></div>
+      </div>
+      <div class="row">
+        <label for="ransomOverride">Ransom amount (leave blank to use the estimate)</label>
+        <div class="field has-pre"><span class="pre">$</span><input type="number" id="ransomOverride" min="0" step="1000" placeholder="auto"></div>
+      </div>
+    </fieldset>
+  </section>
+  </div>
+
+  <!-- RESULTS -->
+  <section class="results" aria-label="Results">
+    <div class="card hero">
+      <div>
+        <label for="durRange">Outage length <button type="button" class="bang" data-help="duration" aria-label="Help: outage length">!</button></label>
+        <div class="duration">
+          <input type="number" id="duration" min="0.25" step="0.25" value="8" aria-label="Duration">
+          <div class="seg" role="group" aria-label="Duration unit" data-key="durUnit" style="margin:0">
+            <button type="button" data-val="hours">Hours</button>
+            <button type="button" data-val="days">Days</button>
+          </div>
+          <input type="range" id="durRange" min="0" max="100" step="1" aria-label="Duration slider">
+        </div>
+        <div class="big num" id="heroTotal">$0</div>
+        <div class="sub" id="heroSub"></div>
+        <div class="heroSplit hidden" id="heroSplit"></div>
+      </div>
+      <div class="rates">
+        <div class="tile"><div class="k">Per hour</div><div class="v num" id="perHour">$0</div></div>
+        <div class="tile"><div class="k">Per day</div><div class="v num" id="perDay">$0</div></div>
+        <div class="tile"><div class="k">Per week</div><div class="v num" id="perWeek">$0</div></div>
+        <div class="tile"><div class="k">% of annual revenue</div><div class="v num" id="pctRev">0%</div></div>
+      </div>
+    </div>
+
+    <div class="card incpanel" data-show="eventMode:incident">
+      <h2>Incident &amp; breach costs <button type="button" class="bang" data-help="inccosts" aria-label="Help: incident costs">!</button> <span class="status">· one-time, on top of downtime</span></h2>
+      <p class="lede" id="incLede"></p>
+      <div class="items" id="incItems"></div>
+      <div class="note" id="incBench"></div>
+    </div>
+
+    <div class="card incpanel" data-show="eventMode:incident">
+      <h2>Ransom estimate <button type="button" class="bang" data-help="ransom" aria-label="Help: ransom estimate">!</button></h2>
+      <p class="lede" id="ransomLede"></p>
+      <div class="rgrid" style="grid-template-columns:repeat(2,1fr)">
+        <div class="tile"><div class="k">Likely demand</div><div class="v num" id="rDemand">$0</div></div>
+        <div class="tile"><div class="k">Ransom exposure (in total)</div><div class="v num" id="rPay">$0</div></div>
+      </div>
+      <div class="note" id="ransomNote"></div>
+    </div>
+
+    <div class="card breakdown">
+      <h2>Where the downtime cost comes from <button type="button" class="bang" data-help="breakdown" aria-label="Help: downtime breakdown">!</button> <span class="status" id="bdFor"></span></h2>
+      <div class="bar" id="bdBar" aria-hidden="true"></div>
+      <div class="comp" id="bdComp"></div>
+    </div>
+
+    <div class="card chartcard">
+      <h2>Cumulative cost over the outage <button type="button" class="bang" data-help="chart" aria-label="Help: cost chart">!</button></h2>
+      <div class="legend" id="legend"></div>
+      <div id="chartWrap">
+        <svg id="chart" role="img" aria-label="Stacked area chart of cumulative downtime cost"></svg>
+        <div class="tip hidden" id="tip"></div>
+      </div>
+    </div>
+
+    <div class="card tablecard">
+      <h2>Cost at common milestones <button type="button" class="bang" data-help="milestones" aria-label="Help: milestones">!</button></h2>
+      <table>
+        <thead><tr><th>Duration</th><th>Idle payroll</th><th id="thRev">Lost revenue</th><th id="thCogs">Wasted COGS</th><th>Downtime total</th><th class="incCol">+ Incident</th><th class="incCol">Grand total</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="copyBtn" type="button">Copy summary</button>
+      <button class="btn" id="resetBtn" type="button">Reset to defaults</button>
+      <span class="status" id="copyStatus" role="status"></span>
+    </div>
+    <div class="assume" id="assume"></div>
+  </section>
+</main>
+
+<main id="view-help" class="helpview" hidden>
+  <section class="card doc">
+    <div class="dochead"><h2>How the math works</h2><button type="button" class="btn" data-go="calc">Back to calculator</button></div>
+    <p class="lede">Every number in Skuld is a simple multiplication you can check by hand. The examples below use the default inputs: 50 staff, $2.5M payroll, $12M revenue, $5M COGS, an 8-hour day and 260 working days a year.</p>
+
+    <h3>1. Downtime: the hourly rate</h3>
+    <ul>
+      <li><b>Operating hours per year</b> = hours per day × days per year. <span class="eg">8 × 260 = 2,080</span></li>
+      <li><b>Idle payroll / hr</b> = annual payroll ÷ operating hours × % staff affected × % productivity lost × (1 + benefits load). <span class="eg">$2.5M ÷ 2,080 = $1,202</span>
+        <br>Using an hourly rate instead: rate × headcount × the same percentages.</li>
+      <li><b>Lost revenue / hr</b> = annual revenue ÷ operating hours × % revenue lost (not recovered later). Monthly revenue is × 12 first. <span class="eg">$12M ÷ 2,080 × 50% = $2,885</span></li>
+      <li><b>COGS / hr</b> = annual COGS ÷ operating hours × the same % revenue lost. Per-head COGS is × headcount first. <span class="eg">$5M ÷ 2,080 × 50% = $1,202</span>
+        <ul>
+          <li><b>Avoided</b> (default): subtracted from lost revenue, giving lost gross profit. <span class="eg">$2,885 − $1,202 = $1,683</span></li>
+          <li><b>Still incurred</b>: added on top as wasted COGS.</li>
+        </ul></li>
+      <li><b>Cost per hour</b> = idle payroll + lost revenue (or gross profit) + wasted COGS. <span class="eg">$1,202 + $1,683 = $2,885</span></li>
+      <li><b>Cost of the outage</b> = cost per hour × outage hours. One "day" = one operating day (8 h by default, 24 h if you set 24 × 365). <span class="eg">1 day = $23,077</span></li>
+    </ul>
+
+    <h3>2. Organization profile (industry)</h3>
+    <ul>
+      <li>Changes <b>only</b> the ransom estimate and the benchmark sentence. It does not change any penalty math.</li>
+      <li>Ransom factor: Healthcare ×0.15 · State / local government ×2.5 · every other industry ×1.0 (no published figure for other sectors).</li>
+    </ul>
+
+    <h3>3. Data size helper</h3>
+    <ul>
+      <li><b>Records</b> = GB × 1,048,576 ÷ KB per record. <span class="eg">1 GB ÷ 2 KB = 524,288</span></li>
+      <li>"Apply count" copies the result into the data type you pick. Skuld assumes <b>1 record = 1 person</b> for every cost below.</li>
+      <li>There's no published benchmark for KB per record. Set it from the client's actual database.</li>
+    </ul>
+
+    <h3>4. Incident line items</h3>
+    <div class="tablewrap"><table class="mathtbl">
+      <thead><tr><th>Line</th><th>Formula</th><th>Default</th></tr></thead>
+      <tbody>
+        <tr><td>Notification</td><td>(Customer + Employee + Health + Card records) × $1</td><td>5,050 × $1 = $5,050</td></tr>
+        <tr><td>Credit monitoring</td><td>(Customer + Employee + Health records) × 15% enrolled × $15 × 1 yr</td><td>757 × $15 = $11,363</td></tr>
+        <tr><td>PCI</td><td>Card records × $50</td><td>$0</td></tr>
+        <tr><td>HIPAA</td><td>Health records × tier minimum, capped at $2,190,294 × provisions violated</td><td>$0 (off)</td></tr>
+        <tr><td>CCPA</td><td>(Customer + Employee records) × % California residents × $107</td><td>$0 (0% CA)</td></tr>
+        <tr><td>GDPR</td><td>Annual revenue × % you enter (max 4%)</td><td>$0</td></tr>
+        <tr><td>Other fines</td><td>Whatever you type</td><td>$0</td></tr>
+        <tr><td>Recovery</td><td>Flat median, editable</td><td>$375,000</td></tr>
+        <tr><td>Ransom</td><td>Size-band payment × industry factor (or your own amount)</td><td>$50,000</td></tr>
+        <tr class="sum"><td>Incident total</td><td>Sum of the above</td><td>$441,413</td></tr>
+      </tbody>
+    </table></div>
+    <p>The headline number = incident total + the downtime cost for the outage length you chose.</p>
+
+    <h3>5. HIPAA, worked through</h3>
+    <ul>
+      <li>Tier minimums per record: Tier 1 $145 · Tier 2 $1,461 · Tier 3 $14,602 · Tier 4 $73,011.</li>
+      <li>Example: 8,000 health records × $1,461 = $11.7M → hits the cap → <b>$2,190,294</b>. For anything bigger than a small breach, the cap decides the number.</li>
+      <li>Each extra provision violated raises the cap by another $2.19M.</li>
+    </ul>
+
+    <h3>6. Ransom, worked through</h3>
+    <ol>
+      <li>Annual revenue picks the size band. $12M → "under $50M": $140K demand, $50K payment.</li>
+      <li>Multiply by the industry factor. General ×1.0 → <b>$50,000</b>; healthcare ×0.15 → $7,500.</li>
+      <li>Typing your own amount replaces the estimate. The full amount always counts toward the total; Skuld measures exposure, not odds.</li>
+    </ol>
+
+    <h3>7. The cross-check line (not added to the total)</h3>
+    <ul>
+      <li>Records × IBM's all-in cost per record: $160 customer, $168 employee, $178 IP, $154 corporate, $115 anonymized. <span class="eg">5,000 × $160 + 50 × $168 = $808,400</span></li>
+      <li>IBM's figure already includes lost business, which the downtime side covers. Compare it to downtime + incident together. If your total is far below it, your inputs are probably too light.</li>
+    </ul>
+
+    <h3>Know the gaps</h3>
+    <ul>
+      <li><b>IP, other corporate and anonymized data add $0</b> to the total; no per-record fee applies. For an IP-heavy client, raise Recovery or use Other fines.</li>
+      <li><b>HIPAA is worst case.</b> It treats each record as one violation; regulators often settle lower.</li>
+      <li><b>CCPA uses the statutory minimum</b> ($107). The range runs to $799; class-action payouts are usually lower.</li>
+      <li><b>Health records are left out of CCPA</b>, because California exempts HIPAA-covered data.</li>
+      <li><b>Excluded entirely:</b> overtime, SLA penalties, customer churn and reputational damage.</li>
+    </ul>
+  </section>
+
+  <section class="card doc" id="sources">
+    <h2>Values &amp; sources</h2>
+    <p class="lede">Use these to validate the defaults. Items marked <span class="flag">verify</span> come from a vendor or secondary source.</p>
+    <table class="mathtbl srctbl">
+      <thead><tr><th>Value</th><th>Used for</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><td>$160 customer PII · $168 employee PII · $178 IP · $154 corporate · $115 anonymized, per record</td><td>Cross-check only</td><td>IBM Cost of a Data Breach 2025, via <a href="https://www.pkware.com/data-breach-calculator" target="_blank" rel="noopener">PKWARE</a> (2026 report has no per-type figures)</td></tr>
+        <tr><td>$4.99M global · $11.5M U.S. · healthcare $6.64M · financial $6.29M · tech $5.50M · industrial $5.50M per breach</td><td>Benchmark sentence</td><td>IBM Cost of a Data Breach 2026, via <a href="https://www.esecurityplanet.com/cybersecurity/ibm-2026-cost-of-a-data-breach-report-key-findings/" target="_blank" rel="noopener">eSecurity Planet</a></td></tr>
+        <tr><td>$1.00 per person notified</td><td>Notification</td><td><a href="https://woodruffsawyer.com/node/2386" target="_blank" rel="noopener">Woodruff Sawyer</a> <span class="flag">verify</span></td></tr>
+        <tr><td>$15 / person / yr, 15% enrollment</td><td>Credit monitoring</td><td><a href="https://woodruffsawyer.com/node/2386" target="_blank" rel="noopener">Woodruff Sawyer</a> (10–20% sign up); <a href="https://inventivehq.com/blog/what-are-typical-breach-notification-costs" target="_blank" rel="noopener">InventiveHQ</a> ($15–50 / yr)</td></tr>
+        <tr><td>$50 per card ($50–90 range)</td><td>PCI</td><td><a href="https://www.pkware.com/data-breach-calculator" target="_blank" rel="noopener">PKWARE</a> <span class="flag">verify</span> with the card processor</td></tr>
+        <tr><td>Tier minimums $145 / $1,461 / $14,602 / $73,011; cap $2,190,294 per provision</td><td>HIPAA</td><td>HHS inflation adjustment, Fed. Reg. Jan 28 2026, via <a href="https://www.accountablehq.com/post/what-s-the-max-penalty-for-a-hipaa-violation-fines-and-jail-time-explained" target="_blank" rel="noopener">AccountableHQ</a>; Tiers 2–4 = 2024 minimums × 1.02598 (<a href="https://www.accountablehq.com/post/what-are-the-hipaa-fines-for-violations-penalty-tiers-examples-and-2025-maximums" target="_blank" rel="noopener">2024 table</a>)</td></tr>
+        <tr><td>$107–$799 per consumer per incident</td><td>CCPA</td><td><a href="https://cppa.ca.gov/announcements/2024/20241217.html" target="_blank" rel="noopener">California Privacy Protection Agency</a></td></tr>
+        <tr><td>Up to 4% of global revenue or €20M</td><td>GDPR</td><td>GDPR Art. 83(5)</td></tr>
+        <tr><td>$375,000 median recovery, excl. ransom ($1.7M mean)</td><td>Recovery</td><td>Sophos State of Ransomware 2026, via <a href="https://axis-intelligence.com/ransomware-attack-cost/" target="_blank" rel="noopener">Axis Intelligence</a></td></tr>
+        <tr><td>Demand / payment by revenue band (see Ransom panel)</td><td>Ransom</td><td>Sophos State of Ransomware 2026, via <a href="https://axis-intelligence.com/ransomware-attack-cost/" target="_blank" rel="noopener">Axis Intelligence</a> <span class="flag">verify</span> against the full report</td></tr>
+        <tr><td>Healthcare ×0.15 · State/local gov ×2.5</td><td>Ransom industry factor</td><td>Sophos State of Ransomware 2025 sector medians ($150K / $2.5M vs. $1M overall), <a href="https://www.sophos.com/en-us/press/press-releases/2025/06/nearly-half-companies-opt-pay-ransom-sophos-report-finds" target="_blank" rel="noopener">Sophos press release</a></td></tr>
+        <tr><td>$150K median · $1.88M average payment</td><td>Context note</td><td>Coveware Q2 2026, via <a href="https://cxotoday.com/cybersecurity/ransom-payments-surge-176-to-1-88m-driven-by-data-exfiltration-attacks/" target="_blank" rel="noopener">CXOToday</a></td></tr>
+        <tr><td>2 KB per record</td><td>Data size helper</td><td>No published benchmark <span class="flag">verify</span> — set from the client's data</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card doc about" id="about">
+    <h2>About &amp; license</h2>
+    <div id="aboutBody"></div>
+  </section>
+</main>
+
+<footer class="appfoot" id="appFoot"></footer>
+<div class="pop" id="pop" role="dialog" aria-modal="false" hidden></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+  const NUM_IDS = ['hoursPerDay','daysPerYear','payTotal','payRate','headcount','burden','affectedPct','prodLossPct','revenue','revImpactPct','cogs','duration',
+    'dataGB','kbPerRecord','notifyCost','monitorCost','monitorYears','monitorUptake','pciPerCard','hipaaProvisions','caPct','ccpaPer','gdprPct','otherFines',
+    'recoveryCost','ransomOverride'];
+
+  // ---- Reference data (see sources list) ----
+  // Data types: IBM Cost of a Data Breach 2025 per-record benchmarks (all-in, used for comparison only).
+  const DTYPES = [
+    { key: 'custPII', name: 'Customer PII',            tag: 'names, SSNs, addresses, emails', ibm: 160, notify: true, monitor: true, ccpa: true },
+    { key: 'empPII',  name: 'Employee PII',            tag: 'HR & payroll records',           ibm: 168, notify: true, monitor: true, ccpa: true },
+    { key: 'phi',     name: 'Health records (PHI)',    tag: 'HIPAA-covered',                  ibm: 160, notify: true, monitor: true, hipaa: true },
+    { key: 'card',    name: 'Payment card data',       tag: 'PAN / cardholder data',          ibm: 160, notify: true, pci: true },
+    { key: 'ip',      name: 'Intellectual property',   tag: 'designs, source, trade secrets', ibm: 178 },
+    { key: 'corp',    name: 'Other corporate data',    tag: 'contracts, financials',          ibm: 154 },
+    { key: 'anon',    name: 'Anonymized customer data',tag: 'de-identified',                  ibm: 115 }
+  ];
+  // Industries: ransom factor from Sophos State of Ransomware 2025 sector medians vs. all-industry $1M median
+  // (only Healthcare and State/local gov were published; others = 1.0). Breach benchmark: IBM CODB 2026 where published.
+  const INDUSTRIES = [
+    { key: 'general',    name: 'General / other',            rf: 1.0,  bench: 4.99, by: 'IBM 2026 global avg' },
+    { key: 'health',     name: 'Healthcare',                 rf: 0.15, bench: 6.64, by: 'IBM 2026' },
+    { key: 'finance',    name: 'Financial services',         rf: 1.0,  bench: 6.29, by: 'IBM 2026' },
+    { key: 'tech',       name: 'Technology',                 rf: 1.0,  bench: 5.50, by: 'IBM 2026' },
+    { key: 'industrial', name: 'Industrial / manufacturing', rf: 1.0,  bench: 5.50, by: 'IBM 2026' },
+    { key: 'retail',     name: 'Retail',                     rf: 1.0,  bench: 4.99, by: 'IBM 2026 global avg' },
+    { key: 'services',   name: 'Professional services',      rf: 1.0,  bench: 4.99, by: 'IBM 2026 global avg' },
+    { key: 'education',  name: 'Education',                  rf: 1.0,  bench: 4.99, by: 'IBM 2026 global avg' },
+    { key: 'gov',        name: 'State / local government',   rf: 2.5,  bench: 4.99, by: 'IBM 2026 global avg' }
+  ];
+  // Sophos State of Ransomware 2026 — median demand & payment by annual revenue (via Axis Intelligence tabulation).
+  const BANDS = [
+    { max: 50e6,     label: 'under $50M',     demand: 140000,  pay: 50000 },
+    { max: 250e6,    label: '$50M–$250M',     demand: 214000,  pay: 305000 },
+    { max: 500e6,    label: '$250M–$500M',    demand: 1368000, pay: 2000000 },
+    { max: 1e9,      label: '$500M–$1B',      demand: 590250,  pay: 500000 },
+    { max: 5e9,      label: '$1B–$5B',        demand: 2280000, pay: 1290000 },
+    { max: Infinity, label: '$5B+',           demand: 5700000, pay: 5700000 }
+  ];
+  // HHS HIPAA civil money penalties, inflation-adjusted (Fed. Reg. Jan 28 2026): per-violation minimums & annual cap per identical provision.
+  const HIPAA_MIN = [0, 145, 1461, 14602, 73011];
+  const HIPAA_CAP = 2190294;
+
+  const DEFAULTS = {
+    eventMode: 'outage',
+    payMode: 'total', revMode: 'annual', cogsMode: 'annual', cogsTreat: 'net', durUnit: 'hours',
+    hoursPerDay: 8, daysPerYear: 260, payTotal: 2500000, payRate: 32, headcount: 50, burden: 0,
+    affectedPct: 100, prodLossPct: 100, revenue: 12000000, revImpactPct: 50, cogs: 5000000, duration: 8,
+    industry: 'general',
+    recs: { custPII: 5000, empPII: 50, phi: 0, card: 0, ip: 0, corp: 0, anon: 0 },
+    dataGB: 1, kbPerRecord: 2, applyType: 'custPII',
+    notifyCost: 1, monitorCost: 15, monitorYears: 1, monitorUptake: 15, pciPerCard: 50,
+    hipaaTier: '0', hipaaProvisions: 1, caPct: 0, ccpaPer: 107, gdprPct: 0, otherFines: 0,
+    recoveryCost: 375000, ransomOverride: ''
+  };
+  const SKULD = { name: 'Skuld — Downtime Projector', version:"1.0.0", released:"2026-11-03", author: 'Triston Hughes', year: '2026',
+    linkedin: 'https://www.linkedin.com/in/triston-hughes-949420242/', portfolio: 'https://triston-hughes.vercel.app/',
+    repo: 'https://github.com/CAITOUS/Skuld-DowntimeProjector',
+    /* Raw URL of skuld.json in the repo you publish from. Set to "" to turn update checks off. */
+    manifestUrl:"https://raw.githubusercontent.com/CAITOUS/Skuld-DowntimeProjector/main/skuld.json" };
+  const NOTICE = `© ${SKULD.year} ${SKULD.author}. All rights reserved. Skuld is the intellectual property of ${SKULD.author}, provided for personal, educational, and internal organizational use. Not for resale, sublicensing, or distribution by value-added resellers (VARs). Projections you create with Skuld belong to you.`;
+  const LOCAL = location.protocol === 'file:';
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  DEFAULTS.site = '';
+  const STORE = 'skuld-v1', OLD_STORE = 'caito-downtime-calc-v2';
+  let S = structuredClone(DEFAULTS);
+  try { const saved = JSON.parse(localStorage.getItem(STORE) || localStorage.getItem(OLD_STORE) || 'null'); if (saved) S = { ...structuredClone(DEFAULTS), ...saved, recs: { ...DEFAULTS.recs, ...(saved.recs || {}) } }; } catch (e) {}
+
+  const $ = id => document.getElementById(id);
+  const money = (v, compact) => {
+    if (!isFinite(v)) v = 0;
+    if (compact && Math.abs(v) >= 1e6) return '$' + (v/1e6).toFixed(Math.abs(v) >= 1e8 ? 0 : 1) + 'M';
+    if (compact && Math.abs(v) >= 1e3) return '$' + (+(v/1e3).toFixed(Math.abs(v) >= 1e5 ? 0 : 1)) + 'K';
+    if (compact) return '$' + Math.round(v);
+    return v.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: Math.abs(v) < 100 ? 2 : 0 });
+  };
+  const n = v => { const x = parseFloat(v); return isFinite(x) && x >= 0 ? x : 0; };
+  const fmtDur = (h, hpd) => {
+    if (h < hpd || hpd <= 0) return (+h.toFixed(2)) + (h === 1 ? ' hour' : ' hours');
+    const d = h / hpd;
+    return (+d.toFixed(2)) + (d === 1 ? ' day' : ' days');
+  };
+  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+  // ---- bind inputs ----
+  NUM_IDS.forEach(id => {
+    const el = $(id); el.value = S[id];
+    el.addEventListener('input', () => {
+      S[id] = el.value === '' ? (id === 'ransomOverride' ? '' : 0) : parseFloat(el.value);
+      if (id === 'duration') syncRange(); update();
+    });
+  });
+  // industry & HIPAA selects
+  $('industry').innerHTML = INDUSTRIES.map(i => `<option value="${i.key}">${i.name}</option>`).join('');
+  $('applyType').innerHTML = DTYPES.map(d => `<option value="${d.key}">${d.name}</option>`).join('');
+  ['industry', 'hipaaTier', 'applyType'].forEach(id => {
+    $(id).value = S[id];
+    $(id).addEventListener('change', () => { S[id] = $(id).value; update(); });
+  });
+  // data-type record rows
+  function buildRows() {
+    $('dtypeRows').innerHTML = DTYPES.map(d =>
+      `<div class="dtype"><span>${d.name}<span class="tag">${d.tag}</span></span>` +
+      `<div class="field"><input type="number" min="0" step="100" data-rec="${d.key}" value="${S.recs[d.key] || 0}" aria-label="${d.name} records"></div></div>`).join('');
+    $('dtypeRows').querySelectorAll('input[data-rec]').forEach(el =>
+      el.addEventListener('input', () => { S.recs[el.dataset.rec] = n(el.value); update(); }));
+  }
+  buildRows();
+  const estRecords = () => Math.round(n(S.dataGB) * 1024 * 1024 / Math.max(0.01, n(S.kbPerRecord) || 2));
+  $('applyBtn').addEventListener('click', () => { S.recs[S.applyType] = estRecords(); buildRows(); update(); });
+  document.querySelectorAll('.seg[data-key]').forEach(g => {
+    const key = g.dataset.key;
+    g.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+      if (key === 'durUnit' && S.durUnit !== b.dataset.val) {
+        const hpd = n(S.hoursPerDay) || 8;
+        S.duration = b.dataset.val === 'days' ? +(S.duration / hpd).toFixed(2) || 1 : +(S.duration * hpd).toFixed(2);
+        $('duration').value = S.duration;
+      }
+      S[key] = b.dataset.val; update(); syncRange();
+    }));
+  });
+
+  // Range slider: log scale, 15 min → 60 days (in operating hours)
+  const range = $('durRange');
+  const minH = 0.25;
+  const maxH = () => 60 * (n(S.hoursPerDay) || 8);
+  const toH = p => minH * Math.pow(maxH() / minH, p / 100);
+  const toP = h => 100 * Math.log(Math.max(minH, h) / minH) / Math.log(maxH() / minH);
+  function syncRange() { range.value = toP(durHours()); }
+  range.addEventListener('input', () => {
+    const h = toH(+range.value), hpd = n(S.hoursPerDay) || 8;
+    if (h < hpd) { S.durUnit = 'hours'; S.duration = h < 2 ? Math.round(h*4)/4 : Math.round(h); }
+    else { S.durUnit = 'days'; const d = h / hpd; S.duration = d < 5 ? Math.round(d*4)/4 : Math.round(d); }
+    $('duration').value = S.duration; update();
+  });
+  function durHours() { return S.durUnit === 'days' ? n(S.duration) * (n(S.hoursPerDay) || 8) : n(S.duration); }
+
+  $('resetBtn').addEventListener('click', () => {
+    const mode = S.eventMode;
+    const site = S.site;
+    S = structuredClone(DEFAULTS); S.eventMode = mode; S.site = site;
+    NUM_IDS.forEach(id => $(id).value = S[id]);
+    ['industry', 'hipaaTier', 'applyType'].forEach(id => $(id).value = S[id]);
+    buildRows(); update(); syncRange();
+  });
+
+  // ---- model ----
+  function model() {
+    const hpd = Math.min(24, n(S.hoursPerDay)) || 8, dpy = Math.min(366, n(S.daysPerYear)) || 260;
+    const opH = hpd * dpy;
+    const heads = n(S.headcount), aff = Math.min(100, n(S.affectedPct)) / 100, prod = Math.min(100, n(S.prodLossPct)) / 100;
+    const load = 1 + n(S.burden) / 100;
+    const payrollAnnual = S.payMode === 'total' ? n(S.payTotal) : n(S.payRate) * heads * opH;
+    const laborHr = payrollAnnual / opH * aff * prod * load;
+    const revAnnual = S.revMode === 'annual' ? n(S.revenue) : n(S.revenue) * 12;
+    const lossShare = Math.min(100, n(S.revImpactPct)) / 100;
+    const grossRevHr = revAnnual / opH * lossShare;
+    const cogsAnnual = S.cogsMode === 'annual' ? n(S.cogs) : n(S.cogs) * heads;
+    const cogsHr = cogsAnnual / opH * lossShare;
+    let revHr, cogsCompHr;
+    if (S.cogsTreat === 'net') { revHr = Math.max(0, grossRevHr - cogsHr); cogsCompHr = 0; }
+    else { revHr = grossRevHr; cogsCompHr = cogsHr; }
+    return { hpd, dpy, opH, heads, payrollAnnual, revAnnual, cogsAnnual, laborHr, revHr, cogsCompHr, grossRevHr, cogsHr,
+             totalHr: laborHr + revHr + cogsCompHr };
+  }
+
+  function incident(m) {
+    const R = S.recs, sumWhere = f => DTYPES.filter(f).reduce((a, d) => a + n(R[d.key]), 0);
+    const totalRecs = sumWhere(() => true);
+    const notifyRecs = sumWhere(d => d.notify), monitorRecs = sumWhere(d => d.monitor), ccpaRecs = sumWhere(d => d.ccpa);
+    const tier = +S.hipaaTier;
+    const items = [
+      { name: 'Breach notification', sub: `${notifyRecs.toLocaleString()} people × ${money(n(S.notifyCost))}`, v: notifyRecs * n(S.notifyCost) },
+      { name: 'Credit / identity monitoring', sub: `${Math.round(monitorRecs * n(S.monitorUptake) / 100).toLocaleString()} enrolled × ${money(n(S.monitorCost))} × ${n(S.monitorYears)} yr`,
+        v: monitorRecs * Math.min(100, n(S.monitorUptake)) / 100 * n(S.monitorCost) * n(S.monitorYears) },
+      { name: 'PCI fines & card fees', sub: `${n(R.card).toLocaleString()} cards × ${money(n(S.pciPerCard))}`, v: n(R.card) * n(S.pciPerCard) },
+      { name: 'HIPAA civil penalty', sub: tier ? `Tier ${tier}: ${n(R.phi).toLocaleString()} records × ${money(HIPAA_MIN[tier])}, capped at ${money(HIPAA_CAP, true)} × ${Math.max(1, n(S.hipaaProvisions))}` : 'Not applicable',
+        v: tier && n(R.phi) > 0 ? Math.min(n(R.phi) * HIPAA_MIN[tier], HIPAA_CAP * Math.max(1, n(S.hipaaProvisions))) : 0 },
+      { name: 'CCPA statutory damages', sub: `${Math.round(ccpaRecs * n(S.caPct) / 100).toLocaleString()} CA consumers × ${money(n(S.ccpaPer))}`, v: ccpaRecs * Math.min(100, n(S.caPct)) / 100 * n(S.ccpaPer) },
+      { name: 'GDPR fine', sub: `${n(S.gdprPct)}% of annual revenue`, v: m.revAnnual * Math.min(4, n(S.gdprPct)) / 100 },
+      { name: 'Other fines / settlements', sub: 'entered', v: n(S.otherFines) },
+      { name: 'Recovery (excl. ransom)', sub: 'IR, forensics, legal, rebuild', v: n(S.recoveryCost) }
+    ];
+    const ind = INDUSTRIES.find(i => i.key === S.industry) || INDUSTRIES[0];
+    const band = BANDS.find(b => m.revAnnual <= b.max);
+    const demand = band.demand * ind.rf, pay = band.pay * ind.rf;
+    const amount = S.ransomOverride === '' || S.ransomOverride == null ? pay : n(S.ransomOverride);
+    const ransomUsed = amount;
+    const fixed = items.reduce((a, i) => a + i.v, 0);
+    return { items, totalRecs, ind, band, demand, pay, amount, ransomUsed, total: fixed + ransomUsed,
+             ibmBench: DTYPES.reduce((a, d) => a + n(R[d.key]) * d.ibm, 0) };
+  }
+
+  function renderIncident(m, inc) {
+    const rows = [...inc.items, { name: 'Ransom', sub: S.ransomOverride === '' || S.ransomOverride == null ? 'estimated payment for size band' : 'entered amount', v: inc.ransomUsed }];
+    const max = Math.max(1, ...rows.map(r => r.v));
+    $('incLede').textContent = `${inc.totalRecs.toLocaleString()} records exposed across ${DTYPES.filter(d => n(S.recs[d.key]) > 0).length} data types.`;
+    $('incItems').innerHTML = rows.map(r =>
+      `<div class="item${r.v ? '' : ' dim'}"><div class="nm">${r.name}<small>${r.sub}</small></div>` +
+      `<div class="track"><span style="width:${(r.v / max * 100).toFixed(1)}%"></span></div><div class="amt num">${money(r.v)}</div></div>`).join('') +
+      `<div class="item sum"><div class="nm">Incident total</div><div class="track" style="background:none"></div><div class="amt num">${money(inc.total)}</div></div>`;
+    $('incBench').innerHTML = `<b>Cross-check:</b> IBM's all-in per-record benchmark for these records is ${money(inc.ibmBench)}. That figure already includes lost business, so compare it to downtime + incident together. ` +
+      `Average breach in ${inc.ind.name.toLowerCase()}: $${inc.ind.bench.toFixed(2)}M (${inc.ind.by}); U.S. average $11.5M.`;
+    $('ransomLede').textContent = `${inc.ind.name}, annual revenue ${money(m.revAnnual, true)} → size band ${inc.band.label}` + (inc.ind.rf !== 1 ? `, industry factor ×${inc.ind.rf}.` : '.');
+    $('rDemand').textContent = money(inc.demand);
+    $('rPay').textContent = money(inc.amount) + (S.ransomOverride !== '' && S.ransomOverride != null ? '*' : '');
+    $('ransomNote').innerHTML = `Band medians from Sophos State of Ransomware 2026; payments can exceed demands because medians come from different respondents. ` +
+      `For context, Coveware's Q2 2026 caseload shows a $150K median and $1.88M average payment. ` +
+      (S.ransomOverride !== '' && S.ransomOverride != null ? '<b>*Overridden.</b> ' : '') +
+      `Paying a sanctioned group can violate OFAC rules — involve counsel before any payment.`;
+  }
+
+  const SERIES = () => [
+    { key: 'laborHr', name: 'Idle payroll', color: css('--series-1') },
+    { key: 'revHr', name: S.cogsTreat === 'net' ? 'Lost gross profit' : 'Lost revenue', color: css('--series-2') },
+    { key: 'cogsCompHr', name: 'Wasted COGS', color: css('--series-3'), hideIfNet: true }
+  ].filter(s => !(s.hideIfNet && S.cogsTreat === 'net'));
+
+  // ---- render ----
+  function update() {
+    // toggles
+    document.querySelectorAll('.seg[data-key]').forEach(g => g.querySelectorAll('button').forEach(b =>
+      b.setAttribute('aria-pressed', String(S[g.dataset.key] === b.dataset.val))));
+    document.querySelectorAll('[data-show]').forEach(el => {
+      const [k, v] = el.dataset.show.split(':'); el.classList.toggle('hidden', S[k] !== v);
+    });
+    $('revLabel').textContent = S.revMode === 'annual' ? 'Yearly revenue' : 'Monthly revenue';
+    $('cogsLabel').textContent = S.cogsMode === 'annual' ? 'Annual COGS' : 'Annual COGS per employee';
+    $('cogsHint').textContent = S.cogsTreat === 'net'
+      ? 'Materials and direct costs you don’t spend when you can’t sell. Subtracted from lost revenue, so you see lost gross profit.'
+      : 'Costs you pay anyway (spoiled stock, contracted services, idle direct costs). Added on top of lost revenue.';
+    $('thRev').textContent = S.cogsTreat === 'net' ? 'Lost gross profit' : 'Lost revenue';
+    $('thCogs').classList.toggle('hidden', S.cogsTreat === 'net');
+
+    const m = model();
+    const H = durHours();
+    const total = m.totalHr * H;
+    const series = SERIES();
+
+    const isInc = S.eventMode === 'incident';
+    const inc = isInc ? incident(m) : null;
+    $('heroTotal').textContent = money(total + (inc ? inc.total : 0));
+    $('heroSub').textContent = (isInc ? `Potential exposure: cyber incident with ${fmtDur(H, m.hpd)} of downtime` : `Potential exposure: ${fmtDur(H, m.hpd)} outage`) +
+      (H >= m.hpd ? ` (${+H.toFixed(2)} operating hours)` : '');
+    $('heroSplit').classList.toggle('hidden', !isInc);
+    if (inc) $('heroSplit').innerHTML =
+      `<span><i style="background:var(--series-1)"></i>Downtime <b class="num">${money(total)}</b></span>` +
+      `<span><i style="background:var(--series-2)"></i>Breach, penalties &amp; recovery <b class="num">${money(inc.total - inc.ransomUsed)}</b></span>` +
+      `<span><i style="background:var(--text-muted)"></i>Ransom <b class="num">${money(inc.ransomUsed)}</b></span>`;
+    if (inc) renderIncident(m, inc);
+    $('gbOut').textContent = `≈ ${estRecords().toLocaleString()} records`;
+    $('perHour').textContent = money(m.totalHr);
+    $('perDay').textContent = money(m.totalHr * m.hpd);
+    $('perWeek').textContent = money(m.totalHr * m.hpd * Math.min(7, m.dpy / 52));
+    $('pctRev').textContent = m.revAnnual > 0 ? (total / m.revAnnual * 100).toFixed(total / m.revAnnual < 0.01 ? 2 : 1) + '%' : '—';
+
+    // breakdown
+    $('bdFor').textContent = '· for ' + fmtDur(H, m.hpd);
+    const bar = $('bdBar'); bar.innerHTML = '';
+    const comp = $('bdComp'); comp.innerHTML = '';
+    series.forEach(s => {
+      const v = m[s.key] * H, share = m.totalHr > 0 ? m[s.key] / m.totalHr : 0;
+      if (share > 0) { const sp = document.createElement('span'); sp.style.flex = share; sp.style.background = s.color; bar.appendChild(sp); }
+      const d = document.createElement('div'); d.style.borderColor = s.color;
+      d.innerHTML = `<div class="name">${s.name}</div><div class="val num">${money(v)}</div><div class="meta num">${money(m[s.key])}/hr · ${(share*100).toFixed(0)}%</div>`;
+      comp.appendChild(d);
+    });
+    if (S.cogsTreat === 'net' && m.cogsHr > 0) {
+      const d = document.createElement('div'); d.style.borderColor = 'var(--border)';
+      d.innerHTML = `<div class="name">COGS avoided (netted out)</div><div class="val num">−${money(Math.min(m.cogsHr, m.grossRevHr) * H)}</div><div class="meta num">of ${money(m.grossRevHr * H)} gross revenue lost</div>`;
+      comp.appendChild(d);
+    }
+
+    // legend
+    $('legend').innerHTML = series.map(s => `<span><i style="background:${s.color}"></i>${s.name}</span>`).join('');
+
+    drawChart(m, H, series);
+    drawTable(m, H, series);
+
+    $('assume').innerHTML = `<b>Assumptions:</b> ${m.opH.toLocaleString()} operating hours/yr (${m.hpd}h × ${m.dpy}d). Annual payroll ${money(m.payrollAnnual)}${S.payMode === 'rate' ? ' (rate × headcount × hours)' : ''}; revenue ${money(m.revAnnual)}/yr; COGS ${money(m.cogsAnnual)}/yr. Costs accrue linearly during operating hours only. Excludes recovery labor, overtime, SLA penalties and reputational impact.`;
+
+    try { localStorage.setItem(STORE, JSON.stringify(S)); } catch (e) {}
+  }
+
+  // ---- chart ----
+  const svg = $('chart'), tip = $('tip'), wrap = $('chartWrap');
+  let chartState = null;
+  function niceMax(v) {
+    if (v <= 0) return 1;
+    const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p;
+    return (f <= 1 ? 1 : f <= 1.5 ? 1.5 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
+  }
+  function drawChart(m, H, series) {
+    const W = Math.max(320, wrap.clientWidth), Ht = 300;
+    svg.setAttribute('viewBox', `0 0 ${W} ${Ht}`);
+    const pad = { l: 64, r: 16, t: 12, b: 34 };
+    const iw = W - pad.l - pad.r, ih = Ht - pad.t - pad.b;
+    const yMax = niceMax(m.totalHr * H);
+    const x = h => pad.l + (H > 0 ? h / H : 0) * iw;
+    const y = v => pad.t + ih - (v / yMax) * ih;
+    const surf = css('--surface-1'), grid = css('--grid');
+    let out = '';
+    // grid + y labels
+    for (let i = 0; i <= 4; i++) {
+      const v = yMax * i / 4, yy = y(v);
+      out += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${yy}" y2="${yy}" stroke="${grid}" stroke-width="1"/>`;
+      out += `<text x="${pad.l - 8}" y="${yy + 4}" text-anchor="end">${money(v, true)}</text>`;
+    }
+    // x ticks
+    const inDays = H >= m.hpd * 2;
+    const unit = inDays ? m.hpd : 1;
+    const span = H / unit;
+    const steps = [0.25, 0.5, 1, 2, 4, 5, 10, 20, 50, 100];
+    const step = steps.find(s => span / s <= 8) || 100;
+    for (let t = 0; t <= span + 1e-9; t += step) {
+      const xx = x(t * unit);
+      out += `<line x1="${xx}" x2="${xx}" y1="${pad.t + ih}" y2="${pad.t + ih + 4}" stroke="${grid}"/>`;
+      out += `<text x="${xx}" y="${Ht - 12}" text-anchor="middle">${+t.toFixed(2)}${inDays ? 'd' : 'h'}</text>`;
+    }
+    // stacked areas (linear accrual → triangles/trapezoids)
+    let base = 0;
+    series.forEach(s => {
+      const top = base + m[s.key];
+      if (m[s.key] > 0) {
+        out += `<path d="M${x(0)},${y(0)} L${x(H)},${y(top * H)} L${x(H)},${y(base * H)} Z" fill="${s.color}" fill-opacity="0.85"/>`;
+        out += `<line x1="${x(0)}" y1="${y(0)}" x2="${x(H)}" y2="${y(top * H)}" stroke="${surf}" stroke-width="2"/>`;
+      }
+      base = top;
+    });
+    out += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${pad.t + ih}" y2="${pad.t + ih}" stroke="${css('--text-muted')}" stroke-width="1"/>`;
+    // end label
+    out += `<text x="${x(H) - 4}" y="${Math.max(pad.t + 12, y(m.totalHr * H) - 6)}" text-anchor="end" style="fill:var(--text-primary);font-weight:600">${money(m.totalHr * H, true)}</text>`;
+    // hover layer
+    out += `<line id="xh" x1="0" x2="0" y1="${pad.t}" y2="${pad.t + ih}" stroke="${css('--text-secondary')}" stroke-width="1" stroke-dasharray="3 3" visibility="hidden"/>`;
+    out += `<circle id="xdot" r="5" fill="${css('--text-primary')}" stroke="${surf}" stroke-width="2" visibility="hidden"/>`;
+    out += `<rect id="hit" x="${pad.l}" y="${pad.t}" width="${iw}" height="${ih}" fill="transparent"/>`;
+    svg.innerHTML = out;
+    chartState = { m, H, series, x, y, pad, iw, W };
+    const hit = svg.querySelector('#hit');
+    hit.addEventListener('pointermove', onMove);
+    hit.addEventListener('pointerleave', () => { tip.classList.add('hidden'); svg.querySelector('#xh').setAttribute('visibility','hidden'); svg.querySelector('#xdot').setAttribute('visibility','hidden'); });
+  }
+  function onMove(ev) {
+    const { m, H, series, x, y, pad, iw, W } = chartState;
+    const r = svg.getBoundingClientRect();
+    const sx = (ev.clientX - r.left) * (W / r.width);
+    const h = Math.max(0, Math.min(H, (sx - pad.l) / iw * H));
+    const xx = x(h);
+    const xh = svg.querySelector('#xh'), dot = svg.querySelector('#xdot');
+    xh.setAttribute('x1', xx); xh.setAttribute('x2', xx); xh.setAttribute('visibility', 'visible');
+    dot.setAttribute('cx', xx); dot.setAttribute('cy', y(m.totalHr * h)); dot.setAttribute('visibility', 'visible');
+    tip.innerHTML = `<div class="t">${fmtDur(h, m.hpd)}</div>` +
+      series.map(s => `<div class="r"><span><i style="background:${s.color}"></i>${s.name}</span><b class="num">${money(m[s.key] * h)}</b></div>`).join('') +
+      `<div class="r" style="border-top:1px solid var(--border);margin-top:4px;padding-top:4px"><span>Total</span><b class="num" style="font-weight:600">${money(m.totalHr * h)}</b></div>`;
+    tip.classList.remove('hidden');
+    const px = (xx / W) * r.width, tw = tip.offsetWidth;
+    tip.style.left = (px + 14 + tw > r.width ? px - tw - 14 : px + 14) + 'px';
+    tip.style.top = '10px';
+  }
+
+  // ---- table ----
+  function drawTable(m, H, series) {
+    const hpd = m.hpd;
+    const rows = [
+      [1,'1 hour'],[2,'2 hours'],[4,'4 hours'],[hpd,'1 day'],[hpd*2,'2 days'],[hpd*3,'3 days'],
+      [hpd*5,'5 days (1 work week)'],[hpd*10,'10 days'],[hpd*20,'20 days (~1 month)']
+    ].filter(([h], i, a) => i === 0 || h !== a[i-1][0]);
+    if (!rows.some(([h]) => Math.abs(h - H) < 1e-6)) rows.push([H, fmtDur(H, hpd) + ' (selected)']);
+    rows.sort((a, b) => a[0] - b[0]);
+    const net = S.cogsTreat === 'net';
+    const inc = S.eventMode === 'incident' ? incident(m).total : null;
+    document.querySelectorAll('.incCol').forEach(el => el.classList.toggle('hidden', inc === null));
+    $('tbody').innerHTML = rows.map(([h, label]) => {
+      const sel = Math.abs(h - H) < 1e-6;
+      return `<tr class="${sel ? 'sel' : ''}"><td>${label}</td><td class="num">${money(m.laborHr*h)}</td><td class="num">${money(m.revHr*h)}</td>` +
+        (net ? '' : `<td class="num">${money(m.cogsCompHr*h)}</td>`) + `<td class="num${inc === null ? ' total' : ''}">${money(m.totalHr*h)}</td>` +
+        (inc === null ? '' : `<td class="num">${money(inc)}</td><td class="num total">${money(m.totalHr*h + inc)}</td>`) + `</tr>`;
+    }).join('');
+  }
+
+  // ---- copy ----
+  $('copyBtn').addEventListener('click', async () => {
+    const m = model(), H = durHours();
+    const lines = [
+      `Skuld downtime projection${S.site ? ` — ${S.site}` : ''}`,
+      `Downtime cost estimate — ${fmtDur(H, m.hpd)}: ${money(m.totalHr * H)}`,
+      `Per hour: ${money(m.totalHr)} | Per day: ${money(m.totalHr * m.hpd)}`,
+      ...SERIES().map(s => `  • ${s.name}: ${money(m[s.key] * H)} (${money(m[s.key])}/hr)`),
+      `Basis: ${m.heads} staff, payroll ${money(m.payrollAnnual)}/yr, revenue ${money(m.revAnnual)}/yr, COGS ${money(m.cogsAnnual)}/yr, ${m.hpd}h × ${m.dpy}d schedule.`
+    ];
+    if (S.eventMode === 'incident') {
+      const inc = incident(m);
+      lines.push('', `Cyber incident costs (one-time): ${money(inc.total)}`,
+        ...inc.items.filter(i => i.v > 0).map(i => `  • ${i.name}: ${money(i.v)}`),
+        `  • Ransom exposure: ${money(inc.ransomUsed)} (likely demand ${money(inc.demand)})`,
+        `TOTAL POTENTIAL EXPOSURE: ${money(m.totalHr * H + inc.total)}`);
+    }
+    try { await navigator.clipboard.writeText(lines.join('\n')); toast('Summary copied'); }
+    catch (e) { toast('Copy was blocked by the browser'); }
+  });
+
+  // ---- client / location ----
+  $('site').value = S.site || '';
+  $('site').addEventListener('input', () => { S.site = $('site').value; try { localStorage.setItem(STORE, JSON.stringify(S)); } catch (e) {} });
+
+  // ---- plain-English help (!) ----
+  const HELP = {
+    mode: ['Outage or incident?', '<p><b>Outage only</b> counts what downtime costs: idle staff, lost sales and wasted cost of goods.</p><p><b>Cyber incident</b> adds the one-time costs of a breach on top: notifying people, credit monitoring, fines, recovery work and a ransom.</p>'],
+    duration: ['Outage length', '<p>How long the business can\'t work. Type it in hours or days, or drag the slider (15 minutes to 60 days).</p><p>One "day" means one working day as set in Operating schedule, not 24 hours.</p>'],
+    schedule: ['Operating schedule', '<p>The hours the business is actually open. Skuld spreads yearly payroll, revenue and costs across these hours to get an hourly rate.</p><p>Office: 8 h × 260 days. Round-the-clock: 24 × 365.</p>'],
+    payroll: ['Payroll & headcount', '<p>Staff still get paid while they can\'t work, so their wages are lost.</p><ul><li><b>Staff affected</b>: who actually can\'t work.</li><li><b>Productivity lost</b>: 100% means they can do nothing; 50% means half their work still gets done.</li><li><b>Benefits load</b>: add this only if your payroll figure leaves out benefits and employer taxes.</li></ul>'],
+    revenue: ['Revenue', '<p>Sales the business misses while it\'s down.</p><p><b>Revenue lost</b> is the share that never comes back. Orders that are only delayed and still close later don\'t count, so this is usually well under 100%.</p>'],
+    cogs: ['Cost of goods sold', '<p>What it costs to make or deliver what you sell.</p><ul><li><b>Avoided</b>: if you can\'t sell, you don\'t spend it, so it comes off lost revenue. This gives lost profit, the safer number.</li><li><b>Still incurred</b>: you pay it anyway (spoiled stock, contracts), so it\'s added on top.</li></ul>'],
+    industry: ['Organization profile', '<p>The industry only adjusts the <b>ransom estimate</b> and the industry benchmark. Healthcare pays much less than average, state and local government much more.</p><p>Revenue from the Revenue section picks the ransom size band.</p>'],
+    data: ['Data exposed', '<p>How many records of each kind were stolen or exposed. Skuld treats <b>one record as one person</b>.</p><p>Don\'t know the count? Enter the data size in GB and the average size per record, then <b>Apply count</b> to a data type.</p><p>Intellectual property, corporate and anonymized data carry no per-record fees, so they only appear in the cross-check.</p>'],
+    penalties: ['Penalties & regulatory', '<ul><li><b>HIPAA</b>: health records only. The tier reflects how careless the business was. Each record counts as one violation, up to a yearly cap.</li><li><b>CCPA</b>: California residents in customer or employee data. $107 is the legal minimum per person.</li><li><b>GDPR</b>: only if EU or UK residents\' data is involved. Up to 4% of revenue.</li><li><b>Other</b>: state attorney-general fines, settlements, anything else you know about.</li></ul>'],
+    recovery: ['Recovery & ransom', '<p><b>Recovery</b> is the cost of getting back to normal: incident response, forensics, legal advice and rebuilding systems. $375K is the industry median, not counting any ransom.</p><p><b>Ransom</b> is estimated from revenue and industry. Type an amount to replace it. The full amount counts, since Skuld measures exposure, not odds.</p>'],
+    inccosts: ['Incident & breach costs', '<p>One-time costs of a cyber incident. They don\'t grow with outage length; they\'re added once on top of downtime.</p><p>The <b>cross-check</b> line uses IBM\'s all-in cost per record. It already includes lost business, so compare it with downtime + incident together.</p>'],
+    ransom: ['Ransom estimate', '<p><b>Likely demand</b> is what attackers typically ask from a business this size. <b>Ransom exposure</b> is what businesses this size typically pay, and it\'s what goes into the total.</p><p>Payments can be higher than demands because the two medians come from different survey respondents.</p>'],
+    breakdown: ['Where the downtime cost comes from', '<p>The downtime cost split into its parts: idle payroll, lost revenue or profit, and wasted cost of goods.</p><p>The biggest bar is where preparedness planning saves the most.</p>'],
+    chart: ['Cumulative cost', '<p>How the downtime cost grows over the outage. Hover over the chart to read the cost at any point.</p><p>It rises in a straight line because each working hour costs the same.</p>'],
+    milestones: ['Cost at milestones', '<p>The same math at common outage lengths, from 1 hour to about a month. In incident mode, the one-time incident cost is added to every row.</p>']
+  };
+  let popBtn = null;
+  function closePop() { $('pop').hidden = true; if (popBtn) { popBtn.setAttribute('aria-expanded', 'false'); popBtn = null; } }
+  function openPop(btn) {
+    const h = HELP[btn.dataset.help]; if (!h) return;
+    const pop = $('pop');
+    pop.innerHTML = `<h3>${h[0]}</h3>${h[1]}`;
+    pop.hidden = false;
+    const r = btn.getBoundingClientRect();
+    pop.style.maxWidth = Math.min(340, innerWidth - 24) + 'px';
+    const ph = pop.offsetHeight;
+    const left = Math.min(Math.max(12, r.left - 20), innerWidth - pop.offsetWidth - 12);
+    let top = r.bottom + 8; if (top + ph > innerHeight - 12) top = Math.max(12, r.top - ph - 8);
+    pop.style.left = left + 'px'; pop.style.top = top + 'px';
+    btn.setAttribute('aria-expanded', 'true'); popBtn = btn;
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('.bang');
+    if (b) { e.preventDefault(); e.stopPropagation(); const same = popBtn && popBtn.dataset.help === b.dataset.help; closePop(); if (!same) openPop(b); return; }
+    if (!e.target.closest('#pop')) closePop();
+  }, true);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && popBtn) { const b = popBtn; closePop(); b.focus(); } });
+  window.addEventListener('scroll', closePop, { passive: true });
+
+  function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 2200); }
+
+  // ---- views ----
+  function route() {
+    const v = (location.hash === '#help' || location.hash === '#about' || location.hash === '#sources') ? 'help' : 'calc';
+    $('view-calc').hidden = v !== 'calc'; $('view-help').hidden = v !== 'help';
+    document.querySelector('.calc-only').style.display = v === 'calc' ? '' : 'none';
+    $('tab-calc').removeAttribute('aria-current'); $('tab-help').removeAttribute('aria-current');
+    $(v === 'calc' ? 'tab-calc' : 'tab-help').setAttribute('aria-current', 'page');
+    if (location.hash === '#about' || location.hash === '#sources') setTimeout(() => $(location.hash.slice(1)).scrollIntoView({ block: 'start' }), 0);
+    if (v === 'calc') setTimeout(update, 0);
+  }
+  document.addEventListener('click', e => {
+    const a = e.target.closest('[data-go]'); if (!a) return;
+    e.preventDefault();
+    const to = a.dataset.go;
+    if (location.hash === '#' + to) route(); else location.hash = to;
+    if (to === 'calc' || to === 'help') window.scrollTo(0, 0);
+  });
+  window.addEventListener('hashchange', route);
+
+  // ---- about, footer, update check ----
+  const authorLinks = () => `Built by <b>${esc(SKULD.author)}</b> · <a href="${SKULD.linkedin}" target="_blank" rel="noopener">LinkedIn</a> · <a href="${SKULD.portfolio}" target="_blank" rel="noopener">Portfolio Toolbox</a>`;
+  $('appFoot').innerHTML = `<div class="row"><span><b>Skuld</b> v${SKULD.version}</span><span>${authorLinks()}</span><span class="sp"></span><a href="#sources" data-go="sources">Sources</a><a href="#about" data-go="about">About &amp; license</a></div><span>${esc(NOTICE)}</span>`;
+  $('aboutBody').innerHTML = `
+    <p><b>${esc(SKULD.name)}</b> · version ${SKULD.version} · released ${SKULD.released}</p>
+    <p>Projects what downtime and cyber incidents would cost a business, to put a dollar value on IT preparedness planning. Named for Skuld, the Norn who weighs what shall be.</p>
+    <p>${authorLinks()}</p>
+    <p><a href="${SKULD.repo}" target="_blank" rel="noopener">Source &amp; downloads on GitHub</a> · <a href="${SKULD.repo}/blob/main/LICENSE.md" target="_blank" rel="noopener">Full license</a></p>
+    <div class="actions" style="padding:0"><button type="button" class="btn" id="checkUpd">Check for updates</button><span class="status">${!SKULD.manifestUrl ? "Update checks aren't set up in this copy." : LOCAL ? 'This copy checks for a newer version each time it opens.' : 'The hosted version is always current.'}</span></div>
+    <p class="notice">${esc(NOTICE)}</p>
+    <p class="notice">Projections are planning estimates built from published industry averages. They are not legal, financial or insurance advice.</p>`;
+  $('checkUpd').addEventListener('click', () => checkUpdates(true));
+  function semverCmp(a, b) { const p = x => String(x || '0').replace(/^v/, '').split(/[.-]/).map(v => parseInt(v, 10) || 0); const A = p(a), B = p(b); for (let i = 0; i < 3; i++) { if ((A[i] || 0) !== (B[i] || 0)) return (A[i] || 0) > (B[i] || 0) ? 1 : -1; } return 0; }
+  async function checkUpdates(manual) {
+    if (!SKULD.manifestUrl) { if (manual) toast("Update checks aren't set up in this copy"); return; }
+    if (!LOCAL) { if (manual) toast("This is the hosted version, so it's always current"); return; }
+    try {
+      let u = SKULD.manifestUrl, j = null;
+      for (let hop = 0; hop < 3; hop++) { const r = await fetch(u, { cache: 'no-store' }); if (!r.ok) throw new Error('HTTP ' + r.status); j = await r.json(); if (j.moved_to && j.moved_to !== u) { u = j.moved_to; continue; } break; }
+      const newer = semverCmp(j.latest, SKULD.version) > 0;
+      let dismissed = ''; try { dismissed = localStorage.getItem(STORE + '-upd-dismiss') || ''; } catch (_) {}
+      const bar = $('updBar');
+      if (newer && (manual || dismissed !== j.latest)) {
+        bar.innerHTML = `<span>🆕 <b>Skuld ${esc(j.latest)}</b> is available. You have ${esc(SKULD.version)}.${j.notes ? ' ' + esc(j.notes) : ''}</span><span class="sp"></span>${j.download ? `<a class="btnlink" href="${esc(j.download)}" target="_blank" rel="noopener">Get the update</a>` : ''}<button type="button" class="btn" id="updLater">Later</button>`;
+        bar.hidden = false;
+        $('updLater').addEventListener('click', () => { try { localStorage.setItem(STORE + '-upd-dismiss', j.latest); } catch (_) {} bar.hidden = true; });
+      } else if (manual) toast(newer ? 'Update available' : `You're on the latest version (${SKULD.version})`);
+    } catch (e) { if (manual) toast("Couldn't check for updates: " + e.message); }
+  }
+
+  window.addEventListener('resize', () => update());
+  route();
+  checkUpdates(false);
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => update());
+  update(); syncRange();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+name: Release
+
+# Publishes a GitHub Release with the downloadable package whenever main contains a
+# Skuld version that hasn't been released yet (the version is read from Skuld.html).
+#
+# Release assets:
+#   - Skuld.html               the app on its own
+#   - skuld-<version>.zip      the full package (app, guides, license)
+#
+# To release: bump `version` in Skuld.html (and skuld.json + CHANGELOG.md), push to main.
+
+on:
+  push:
+    branches: [main]
+    paths: ['Skuld.html', 'skuld.json', 'CHANGELOG.md', '.github/workflows/release.yml']
+  workflow_dispatch:
+    inputs:
+      rebuild:
+        description: 'Re-upload assets even if this version is already released'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version from Skuld.html
+        id: v
+        run: |
+          VER=$(grep -oE 'version:"[0-9]+\.[0-9]+\.[0-9]+[^"]*"' Skuld.html | head -1 | sed -E 's/version:"([^"]+)"/\1/')
+          [ -n "$VER" ] || { echo "::error::Could not find version in Skuld.html"; exit 1; }
+          echo "ver=$VER" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VER" >> "$GITHUB_OUTPUT"
+          if gh release view "v$VER" >/dev/null 2>&1; then echo "exists=true" >> "$GITHUB_OUTPUT"; else echo "exists=false" >> "$GITHUB_OUTPUT"; fi
+          echo "Skuld version: $VER"
+
+      - name: Check skuld.json matches
+        if: steps.v.outputs.exists == 'false' || inputs.rebuild
+        run: |
+          grep -q "\"latest\": *\"${{ steps.v.outputs.ver }}\"" skuld.json \
+            || echo "::warning::skuld.json 'latest' is not ${{ steps.v.outputs.ver }}; existing copies won't be told about this release"
+
+      - name: Build package
+        if: steps.v.outputs.exists == 'false' || inputs.rebuild
+        run: |
+          NAME="skuld-${{ steps.v.outputs.ver }}"
+          mkdir -p "dist/$NAME"
+          cp -r Skuld.html index.html README.md LICENSE.md CHANGELOG.md skuld.json docs "dist/$NAME/"
+          (cd dist && zip -qr "$NAME.zip" "$NAME" && cp "$NAME/Skuld.html" Skuld.html)
+          ls -la dist
+
+      - name: Release notes
+        if: steps.v.outputs.exists == 'false' || inputs.rebuild
+        run: |
+          awk -v v="## ${{ steps.v.outputs.ver }}" 'index($0,v)==1 {f=1;next} /^## /{if(f)exit} f' CHANGELOG.md > notes.md
+          OWNER=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+          {
+            echo ""
+            echo "### Get Skuld"
+            echo "- **Launch in your browser (no download):** https://${OWNER}.github.io/${GITHUB_REPOSITORY#*/}/"
+            echo "- **App only:** \`Skuld.html\`, download and open in any modern browser"
+            echo "- **Full package:** \`skuld-${{ steps.v.outputs.ver }}.zip\`, app plus guides and license"
+          } >> notes.md
+          cat notes.md
+
+      - name: Publish release
+        if: steps.v.outputs.exists == 'false' || inputs.rebuild
+        run: |
+          TAG="${{ steps.v.outputs.tag }}"
+          FILES="dist/Skuld.html dist/skuld-${{ steps.v.outputs.ver }}.zip"
+          if [ "${{ steps.v.outputs.exists }}" = "true" ]; then
+            gh release upload "$TAG" $FILES --clobber
+            gh release edit "$TAG" --notes-file notes.md
+          else
+            gh release create "$TAG" $FILES --target "$GITHUB_SHA" \
+              --title "Skuld ${{ steps.v.outputs.ver }}" --notes-file notes.md --latest
+          fi
+
+      - name: Nothing to do
+        if: steps.v.outputs.exists == 'true' && !inputs.rebuild
+        run: echo "Version ${{ steps.v.outputs.ver }} is already released. Bump the version in Skuld.html to publish a new release."
