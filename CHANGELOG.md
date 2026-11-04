@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.0 — 2026-11-03
+
+Clear split between sample data and a real client forecast.
+
+- Skuld opens on clearly labeled **Sample data**: a striped banner, a SAMPLE tag on the headline figure, "sample data" in the result line and the page title, and a SAMPLE DATA header on the copied summary
+- **Start new client forecast** clears every client figure (payroll, headcount, revenue, COGS, records exposed) and keeps the sourced reference rates (fees, penalties, recovery)
+- A client name typed over sample data is flagged and carried into the new forecast
+- Client forecasts show a **Client forecast** banner with the client's name and which key inputs are still missing; missing fields are outlined, and the headline waits for payroll and revenue
+- **Load sample data** and **New forecast** ask for confirmation before replacing a client forecast
+- Replaces the old "Reset to defaults" button
+
 ## 1.0.0 — 2026-11-03
 
 First public release.

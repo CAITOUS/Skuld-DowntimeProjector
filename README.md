@@ -6,7 +6,7 @@ Skuld is a single HTML file. It needs no installation and no server. Open it in 
 
 ### ▶ [Launch Skuld in your browser](https://caitous.github.io/Skuld-DowntimeProjector/) &nbsp;·&nbsp; ⬇ [Download the latest release](https://github.com/CAITOUS/Skuld-DowntimeProjector/releases/latest)
 
-No sign-up and no install. It opens with sample numbers so you can look around right away. Your inputs are saved in your own browser only.
+No sign-up and no install. It opens on clearly labeled **sample data** so you can look around right away; click **Start new client forecast** to clear it and enter a real client's numbers. Your inputs are saved in your own browser only.
 
 ![Skuld: outage length, cost per hour and day, and where the cost comes from](docs/images/overview.webp)
 
@@ -24,6 +24,7 @@ No sign-up and no install. It opens with sample numbers so you can look around r
 - **Cross-check.** Compares the result with IBM's all-in cost-per-record and industry breach averages, so you can see whether the inputs are too light.
 - **Milestone table and chart.** Cost at 1, 2 and 4 hours and 1, 2, 3, 5, 10 and 20 days, plus a cost-over-time chart you can hover.
 - **Plain-English help.** Every section has a **!** button that explains it simply. The **How the math works & sources** tab shows every formula with a worked example, and lists each default value with its source.
+- **Sample data vs. client forecast.** Sample numbers are always labeled as such (striped banner, SAMPLE tag, summary header). A client forecast starts blank, shows the client's name, and lists any key inputs still missing.
 - **Copy summary.** One click copies the figures as text, ready for a proposal or email.
 
 | | |
@@ -38,11 +39,12 @@ No sign-up and no install. It opens with sample numbers so you can look around r
 1. **Open Skuld**, either way:
    - **In your browser:** [caitous.github.io/Skuld-DowntimeProjector](https://caitous.github.io/Skuld-DowntimeProjector/). Nothing to download.
    - **Offline copy:** download `Skuld.html` (app only) or `skuld-<version>.zip` (app, guides, license) from [Releases](https://github.com/CAITOUS/Skuld-DowntimeProjector/releases/latest), then open `Skuld.html`.
-2. **Enter the client or location** at the top. It's included in the copied summary.
-3. **Fill in the operating schedule, payroll, revenue and cost of goods.**
-4. **Set the outage length** in hours or days, or drag the slider.
-5. **For a cyber incident,** choose **Yes** and fill in the industry, records exposed and any penalties that apply.
-6. **Copy summary** and paste it into your proposal.
+2. **Click Start new client forecast.** This clears the sample numbers but keeps the sourced reference rates.
+3. **Enter the client or location** at the top. It's included in the copied summary.
+4. **Fill in the operating schedule, payroll, revenue and cost of goods.**
+5. **Set the outage length** in hours or days, or drag the slider.
+6. **For a cyber incident,** choose **Yes** and fill in the industry, records exposed and any penalties that apply.
+7. **Copy summary** and paste it into your proposal.
 
 ---
 

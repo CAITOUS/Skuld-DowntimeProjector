@@ -231,6 +231,23 @@
   .about #aboutBody { display: grid; gap: 10px; font-size: 14px; }
   .about p { margin: 0; }
   .about .notice { font-size: 12.5px; color: var(--text-muted); }
+  .dsbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 16px; padding: 12px 16px; border-radius: 10px; font-size: 14px; border: 1px solid; }
+  .dsbar .tag { font: 700 12px "IBM Plex Sans", sans-serif; letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; border-radius: 5px; color: #fff; }
+  .dsbar .msg { flex: 1; min-width: 260px; color: var(--text-secondary); }
+  .dsbar .msg b { color: var(--text-primary); }
+  .dsbar.sample { border-color: var(--series-2); background: repeating-linear-gradient(135deg, var(--surface-1) 0 12px, var(--surface-2) 12px 24px); }
+  .dsbar.sample .tag { background: var(--series-2); }
+  .dsbar.client { border-color: var(--accent); background: var(--surface-1); }
+  .dsbar.client .tag { background: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; padding: 10px 14px; border: 1px solid var(--series-2); border-radius: 10px; background: var(--surface-1); font-size: 14px; }
+  .confirm[hidden] { display: none; }
+  .confirm span { flex: 1; min-width: 240px; }
+  .ds-pill { display: inline-block; vertical-align: middle; margin-left: 10px; font: 700 11px "IBM Plex Sans", sans-serif; letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; border-radius: 5px; color: #fff; background: var(--series-2); }
+  .ds-pill[hidden] { display: none; }
+  body[data-ds="sample"] .hero .big { color: var(--text-secondary); }
+  body[data-ds="sample"] .card.hero { background: repeating-linear-gradient(135deg, var(--surface-1) 0 14px, var(--surface-2) 14px 28px); }
+  input.need { border-color: var(--series-2) !important; box-shadow: 0 0 0 1px var(--series-2); }
   @media print { .tabs, .bang, .actions, .updbar, .site-row input { display: none !important; } }
 </style>
 </head>
@@ -255,6 +272,12 @@
         <button type="button" data-val="outage">No — outage only</button>
         <button type="button" data-val="incident">Yes — cyber incident / ransomware</button>
       </div>
+    </div>
+    <div class="dsbar" id="dsBar" role="status"></div>
+    <div class="confirm" id="confirmBar" hidden role="alertdialog" aria-labelledby="confirmMsg">
+      <span id="confirmMsg"></span>
+      <button type="button" class="btn primary" id="confirmYes">Yes, replace</button>
+      <button type="button" class="btn" id="confirmNo">Cancel</button>
     </div>
   </div>
 </header>
@@ -446,7 +469,7 @@
           </div>
           <input type="range" id="durRange" min="0" max="100" step="1" aria-label="Duration slider">
         </div>
-        <div class="big num" id="heroTotal">$0</div>
+        <div class="big num"><span id="heroTotal">$0</span><span class="ds-pill" id="heroPill" hidden>Sample</span></div>
         <div class="sub" id="heroSub"></div>
         <div class="heroSplit hidden" id="heroSplit"></div>
       </div>
@@ -500,7 +523,8 @@
 
     <div class="actions">
       <button class="btn" id="copyBtn" type="button">Copy summary</button>
-      <button class="btn" id="resetBtn" type="button">Reset to defaults</button>
+      <button class="btn primary" type="button" data-act="new">Start new client forecast</button>
+      <button class="btn" type="button" data-act="sample">Load sample data</button>
       <span class="status" id="copyStatus" role="status"></span>
     </div>
     <div class="assume" id="assume"></div>
@@ -510,7 +534,7 @@
 <main id="view-help" class="helpview" hidden>
   <section class="card doc">
     <div class="dochead"><h2>How the math works</h2><button type="button" class="btn" data-go="calc">Back to calculator</button></div>
-    <p class="lede">Every number in Skuld is a simple multiplication you can check by hand. The examples below use the default inputs: 50 staff, $2.5M payroll, $12M revenue, $5M COGS, an 8-hour day and 260 working days a year.</p>
+    <p class="lede">Every number in Skuld is a simple multiplication you can check by hand. The examples below use the sample data: 50 staff, $2.5M payroll, $12M revenue, $5M COGS, an 8-hour day and 260 working days a year.</p>
 
     <h3>1. Downtime: the hourly rate</h3>
     <ul>
@@ -676,7 +700,7 @@
     hipaaTier: '0', hipaaProvisions: 1, caPct: 0, ccpaPer: 107, gdprPct: 0, otherFines: 0,
     recoveryCost: 375000, ransomOverride: ''
   };
-  const SKULD = { name: 'Skuld — Downtime Projector', version:"1.0.0", released:"2026-11-03", author: 'Triston Hughes', year: '2026',
+  const SKULD = { name: 'Skuld — Downtime Projector', version:"1.1.0", released:"2026-11-03", author: 'Triston Hughes', year: '2026',
     linkedin: 'https://www.linkedin.com/in/triston-hughes-949420242/', portfolio: 'https://triston-hughes.vercel.app/',
     repo: 'https://github.com/CAITOUS/Skuld-DowntimeProjector',
     /* Raw URL of skuld.json in the repo you publish from. Set to "" to turn update checks off. */
@@ -685,9 +709,19 @@
   const LOCAL = location.protocol === 'file:';
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   DEFAULTS.site = '';
+  DEFAULTS.dataset = 'sample';
+  // Blank template for a real client: the client's own figures start empty; reference rates (fees, penalties, recovery) keep their sourced defaults.
+  const CLIENT_BLANKS = ['payTotal', 'payRate', 'headcount', 'revenue', 'cogs', 'dataGB'];
+  function blankClient() {
+    const c = structuredClone(DEFAULTS);
+    c.dataset = 'client'; c.site = '';
+    CLIENT_BLANKS.forEach(k => c[k] = '');
+    Object.keys(c.recs).forEach(k => c.recs[k] = '');
+    return c;
+  }
   const STORE = 'skuld-v1', OLD_STORE = 'caito-downtime-calc-v2';
   let S = structuredClone(DEFAULTS);
-  try { const saved = JSON.parse(localStorage.getItem(STORE) || localStorage.getItem(OLD_STORE) || 'null'); if (saved) S = { ...structuredClone(DEFAULTS), ...saved, recs: { ...DEFAULTS.recs, ...(saved.recs || {}) } }; } catch (e) {}
+  try { const saved = JSON.parse(localStorage.getItem(STORE) || localStorage.getItem(OLD_STORE) || 'null'); if (saved) { S = { ...structuredClone(DEFAULTS), ...saved, recs: { ...DEFAULTS.recs, ...(saved.recs || {}) } }; if (!saved.dataset) S.dataset = (+saved.payTotal === DEFAULTS.payTotal && +saved.revenue === DEFAULTS.revenue) ? 'sample' : 'client'; } } catch (e) {}
 
   const $ = id => document.getElementById(id);
   const money = (v, compact) => {
@@ -724,7 +758,7 @@
   function buildRows() {
     $('dtypeRows').innerHTML = DTYPES.map(d =>
       `<div class="dtype"><span>${d.name}<span class="tag">${d.tag}</span></span>` +
-      `<div class="field"><input type="number" min="0" step="100" data-rec="${d.key}" value="${S.recs[d.key] || 0}" aria-label="${d.name} records"></div></div>`).join('');
+      `<div class="field"><input type="number" min="0" step="100" data-rec="${d.key}" value="${S.recs[d.key] === '' ? '' : (S.recs[d.key] || 0)}" placeholder="0" aria-label="${d.name} records"></div></div>`).join('');
     $('dtypeRows').querySelectorAll('input[data-rec]').forEach(el =>
       el.addEventListener('input', () => { S.recs[el.dataset.rec] = n(el.value); update(); }));
   }
@@ -758,14 +792,52 @@
   });
   function durHours() { return S.durUnit === 'days' ? n(S.duration) * (n(S.hoursPerDay) || 8) : n(S.duration); }
 
-  $('resetBtn').addEventListener('click', () => {
+  // ---- sample data vs. client forecast ----
+  const hasClientData = () => S.dataset === 'client' && (S.site || CLIENT_BLANKS.some(k => n(S[k]) > 0) || Object.values(S.recs).some(v => n(v) > 0));
+  function applyState(next, msg) {
     const mode = S.eventMode;
-    const site = S.site;
-    S = structuredClone(DEFAULTS); S.eventMode = mode; S.site = site;
+    S = next; S.eventMode = mode;
     NUM_IDS.forEach(id => $(id).value = S[id]);
     ['industry', 'hipaaTier', 'applyType'].forEach(id => $(id).value = S[id]);
+    $('site').value = S.site || '';
+    $('confirmBar').hidden = true;
     buildRows(); update(); syncRange();
+    window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    toast(msg);
+  }
+  const startClient = () => { const c = blankClient(); if (S.dataset !== 'client') c.site = S.site || ''; applyState(c, 'New client forecast started. Enter the client\u2019s numbers'); setTimeout(() => $('site').focus(), 50); };
+  const loadSample = () => applyState(structuredClone(DEFAULTS), 'Sample data loaded');
+  let pending = null;
+  function ask(msg, fn) { pending = fn; $('confirmMsg').textContent = msg; $('confirmBar').hidden = false; $('confirmYes').focus(); }
+  $('confirmYes').addEventListener('click', () => { const f = pending; pending = null; if (f) f(); });
+  $('confirmNo').addEventListener('click', () => { pending = null; $('confirmBar').hidden = true; });
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const who = S.site ? `the forecast for ${S.site}` : 'this client forecast';
+    if (b.dataset.act === 'new') hasClientData() ? ask(`Clear ${who} and start a new one? This can't be undone.`, startClient) : startClient();
+    if (b.dataset.act === 'sample') hasClientData() ? ask(`Replace ${who} with sample data? This can't be undone.`, loadSample) : loadSample();
   });
+  function renderDataset(m) {
+    const sample = S.dataset !== 'client';
+    document.body.dataset.ds = sample ? 'sample' : 'client';
+    $('heroPill').hidden = !sample;
+    const bar = $('dsBar');
+    bar.className = 'dsbar ' + (sample ? 'sample' : 'client');
+    const need = [];
+    if (!sample) {
+      const payKey = S.payMode === 'total' ? 'payTotal' : 'payRate';
+      if (!n(S[payKey])) need.push([payKey, 'payroll']);
+      if (!n(S.headcount)) need.push(['headcount', 'headcount']);
+      if (!n(S.revenue)) need.push(['revenue', 'revenue']);
+      if (!n(S.cogs)) need.push(['cogs', 'COGS']);
+    }
+    ['payTotal', 'payRate', 'headcount', 'revenue', 'cogs'].forEach(k => $(k).classList.toggle('need', need.some(x => x[0] === k)));
+    bar.innerHTML = sample
+      ? `<span class="tag">Sample data</span><span class="msg">${S.site ? `<b>You named a client, but the numbers below are still sample data.</b> Start a client forecast to clear them and enter ${esc(S.site)}\u2019s own figures.` : `<b>These are made-up example numbers</b> (a 50-person business with $12M revenue) so you can see how Skuld works. They are not a client forecast.`}</span><button type="button" class="btn primary" data-act="new">Start new client forecast</button>`
+      : `<span class="tag">Client forecast</span><span class="msg"><b>${esc(S.site || 'Unnamed client')}</b>${need.length ? ` · still needed: ${need.map(x => x[1]).join(', ')}` : ' · all key inputs entered'}</span><button type="button" class="btn" data-act="new">New forecast</button><button type="button" class="btn" data-act="sample">Load sample data</button>`;
+    document.title = sample ? 'Skuld — Downtime Projector (sample data)' : `Skuld — ${S.site || 'Client forecast'}`;
+    return { sample, need, empty: !sample && !n(S[S.payMode === 'total' ? 'payTotal' : 'payRate']) && !n(S.revenue) };
+  }
 
   // ---- model ----
   function model() {
@@ -862,9 +934,12 @@
 
     const isInc = S.eventMode === 'incident';
     const inc = isInc ? incident(m) : null;
-    $('heroTotal').textContent = money(total + (inc ? inc.total : 0));
+    const ds = renderDataset(m);
+    $('heroTotal').textContent = ds.empty ? '—' : money(total + (inc ? inc.total : 0));
     $('heroSub').textContent = (isInc ? `Potential exposure: cyber incident with ${fmtDur(H, m.hpd)} of downtime` : `Potential exposure: ${fmtDur(H, m.hpd)} outage`) +
-      (H >= m.hpd ? ` (${+H.toFixed(2)} operating hours)` : '');
+      (H >= m.hpd ? ` (${+H.toFixed(2)} operating hours)` : '') +
+      (ds.sample ? ' — sample data' : ds.need.length ? ` — incomplete: add ${ds.need.map(x => x[1]).join(', ')}` : '');
+    if (ds.empty) $('heroSub').textContent = 'Enter the client’s payroll and revenue to start this forecast.';
     $('heroSplit').classList.toggle('hidden', !isInc);
     if (inc) $('heroSplit').innerHTML =
       `<span><i style="background:var(--series-1)"></i>Downtime <b class="num">${money(total)}</b></span>` +
@@ -1005,7 +1080,7 @@
   $('copyBtn').addEventListener('click', async () => {
     const m = model(), H = durHours();
     const lines = [
-      `Skuld downtime projection${S.site ? ` — ${S.site}` : ''}`,
+      S.dataset === 'client' ? `Skuld downtime forecast — ${S.site || 'Unnamed client'}` : 'Skuld — SAMPLE DATA (example numbers, not a client forecast)',
       `Downtime cost estimate — ${fmtDur(H, m.hpd)}: ${money(m.totalHr * H)}`,
       `Per hour: ${money(m.totalHr)} | Per day: ${money(m.totalHr * m.hpd)}`,
       ...SERIES().map(s => `  • ${s.name}: ${money(m[s.key] * H)} (${money(m[s.key])}/hr)`),
@@ -1022,9 +1097,11 @@
     catch (e) { toast('Copy was blocked by the browser'); }
   });
 
+  // placeholders for the client's own figures
+  [['payTotal', 'e.g. 2500000'], ['payRate', 'e.g. 32'], ['headcount', 'e.g. 50'], ['revenue', 'e.g. 12000000'], ['cogs', 'e.g. 5000000'], ['dataGB', '0']].forEach(([id, ph]) => $(id).placeholder = ph);
   // ---- client / location ----
   $('site').value = S.site || '';
-  $('site').addEventListener('input', () => { S.site = $('site').value; try { localStorage.setItem(STORE, JSON.stringify(S)); } catch (e) {} });
+  $('site').addEventListener('input', () => { S.site = $('site').value; update(); });
 
   // ---- plain-English help (!) ----
   const HELP = {
